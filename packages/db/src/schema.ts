@@ -112,6 +112,8 @@ export const adapterRuns = pgTable(
     status: text('status').notNull().$type<AdapterRunStatus>(),
     itemsFound: integer('items_found').notNull().default(0),
     pagesFetched: integer('pages_fetched').notNull().default(0),
+    /** Het so trang cho phep nhung nguon van con hang. */
+    truncated: boolean('truncated').notNull().default(false),
     errorText: text('error_text'),
   },
   (t) => [index('adapter_runs_source_started_idx').on(t.sourceId, t.startedAt)],

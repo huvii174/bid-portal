@@ -7,6 +7,7 @@ export interface RunOutcome {
   status: AdapterRunStatus
   itemsFound: number
   pagesFetched: number
+  truncated?: boolean
   errorText?: string
 }
 
@@ -59,6 +60,7 @@ export async function finishRun(
       status,
       itemsFound: outcome.itemsFound,
       pagesFetched: outcome.pagesFetched,
+      truncated: outcome.truncated ?? false,
       errorText: outcome.errorText,
       finishedAt: new Date(),
     })

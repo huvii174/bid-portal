@@ -1,0 +1,1 @@
+ALTER TABLE "adapter_runs" ADD COLUMN "truncated" boolean DEFAULT false NOT NULL;

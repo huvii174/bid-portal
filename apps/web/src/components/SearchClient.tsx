@@ -101,6 +101,11 @@ export function SearchClient({ timezone, initialKeyword }: { timezone: string; i
       if (data.mode === 'cached') {
         setResults(data.results ?? [])
         setLastCheckedAt(data.lastCheckedAt ?? null)
+        // Cache sinh ra tu mot lan crawl bi cat van phai noi ro, neu khong thi
+        // suot 6h sau do danh sach ngan trong nhu danh sach day.
+        if (data.truncatedSources?.length > 0) {
+          setMessage('Lần lấy dữ liệu gần nhất chưa lấy hết — còn hàng chưa về.')
+        }
         setBusy(false)
         return
       }

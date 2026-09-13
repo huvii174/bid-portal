@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       mode: 'cached',
       keyword,
       lastCheckedAt: cache.lastCheckedAt,
+      truncatedSources: cache.truncatedSources,
       results,
     })
   }

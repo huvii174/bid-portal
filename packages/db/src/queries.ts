@@ -1,5 +1,6 @@
 import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm'
 import {
+  adapterRuns,
   auctionHouses,
   auctions,
   keywordCache,
@@ -106,6 +107,8 @@ export interface CacheState {
   fresh: boolean
   lastCheckedAt: Date | null
   staleSources: string[]
+  /** Lan crawl sinh ra cache nay da bi cat bot o gioi han so trang. */
+  truncatedSources: string[]
 }
 
 export async function getCacheState(db: Db, keyword: string): Promise<CacheState> {
@@ -113,7 +116,7 @@ export async function getCacheState(db: Db, keyword: string): Promise<CacheState
   const enabledIds = enabled.map((s) => s.id)
 
   if (enabledIds.length === 0) {
-    return { fresh: false, lastCheckedAt: null, staleSources: [] }
+    return { fresh: false, lastCheckedAt: null, staleSources: [], truncatedSources: [] }
   }
 
   const cached = await db
@@ -133,9 +136,24 @@ export async function getCacheState(db: Db, keyword: string): Promise<CacheState
     null,
   )
 
+  // Khong co cai nay thi suot 6h sau mot lan crawl bi cat, moi tim kiem lai
+  // deu tra danh sach ngan ma khong mot dau hieu nao — dung kieu im lang ma
+  // ca he thong canh bao sinh ra de chan.
+  const truncatedSources = await db
+    .selectDistinct({ sourceId: adapterRuns.sourceId })
+    .from(adapterRuns)
+    .where(
+      and(
+        eq(adapterRuns.keyword, keyword),
+        eq(adapterRuns.truncated, true),
+        inArray(adapterRuns.sourceId, enabledIds),
+      ),
+    )
+
   return {
     fresh: enabledIds.every((id) => freshIds.has(id)),
     lastCheckedAt,
     staleSources: enabledIds.filter((id) => !freshIds.has(id)),
+    truncatedSources: truncatedSources.map((r) => r.sourceId),
   }
 }

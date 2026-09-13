@@ -48,7 +48,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ jobId: 
       status: run ? (run.finishedAt ? run.status : 'running') : 'pending',
       itemsFound: run?.itemsFound ?? 0,
       pagesFetched: run?.pagesFetched ?? 0,
-      truncated: run?.errorText?.startsWith('cat bot o') ?? false,
+      truncated: run?.truncated ?? false,
       errorText: run?.errorText ?? null,
     }
   })

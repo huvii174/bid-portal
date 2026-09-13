@@ -118,6 +118,7 @@ export async function runSearch(
       status,
       itemsFound: collected.length,
       pagesFetched,
+      truncated,
       errorText,
     })
 
