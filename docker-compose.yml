@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: bid-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bid
+      POSTGRES_PASSWORD: bid
+      POSTGRES_DB: bid
+    ports:
+      # 5433 tren host de khong dung cong voi postgres cai san (5432).
+      - '5433:5432'
+    volumes:
+      - bid_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bid -d bid']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  bid_pgdata:

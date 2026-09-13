@@ -1,0 +1,28 @@
+{
+  "name": "bid-portal",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Portal tong hop do co dau gia - internal aggregator for antique auction listings",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "db:generate": "npm run -w @bid/db generate",
+    "db:migrate": "npm run -w @bid/db migrate",
+    "db:seed-admin": "npm run -w @bid/db seed-admin",
+    "dev:web": "npm run -w @bid/web dev",
+    "dev:worker": "npm run -w @bid/worker dev",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
