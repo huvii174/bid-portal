@@ -48,8 +48,11 @@ export interface RawListing {
 
 export interface SearchPage {
   listings: RawListing[]
-  /** Số item tối đa mà nguồn trả về cho một trang — dùng để biết đã hết trang chưa. */
-  pageLength: number
+  /**
+   * Adapter tự quyết định vì mỗi nguồn có quy ước phân trang riêng.
+   * Orchestrator chỉ cần biết có nên gọi trang tiếp theo hay không.
+   */
+  isLastPage: boolean
 }
 
 export interface Adapter {

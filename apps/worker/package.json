@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
-    "search": "tsx src/cli/search.ts"
+    "search": "tsx src/cli/search.ts",
+    "crawl": "tsx src/cli/crawl.ts"
   },
   "dependencies": {
     "@bid/db": "*",

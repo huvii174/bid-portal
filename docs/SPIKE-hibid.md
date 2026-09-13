@@ -51,7 +51,25 @@ apollo.state
 
 `&apage=N`. Đã xác minh: `q=tiffany lamp` → trang 1 có 100 lot, trang 2 có 87 lot, **overlap = 0** (hoàn toàn rời nhau) → tổng 187 lot.
 
-Lưu ý bẫy: `pagedResults.totalCount` **không phải** tổng số kết quả toàn cục — nó chỉ đếm số lot được hydrate trong request đó (trang 1 báo 100, trang 2 báo 87). Đừng dùng field này làm tổng. Dấu hiệu hết trang: số `results` < `pageLength`.
+**Kích thước trang của HiBid là 100.** Trang trả về < 100 lot là trang cuối.
+
+Hai cái bẫy đã trả giá để phát hiện (đều gây lỗi thật lúc triển khai):
+
+1. **`pagedResults.pageLength` và `totalCount` đều vô dụng cho phân trang.** Cả hai luôn bằng đúng số lot được hydrate trong request đó (trang 1 của "tiffany lamp" báo 100, trang 2 báo 87; "rococo table" chỉ có 35 kết quả thì báo 35). Nên điều kiện `results.length < pageLength` **không bao giờ đúng** → luôn gọi thừa một trang không tồn tại. Phải so với hằng số 100.
+
+2. **Trang vượt quá kết quả cuối được render KHÔNG kèm `lotSearch`.** Đây là "hết kết quả", không phải adapter hỏng. Nếu gộp hai trường hợp này làm một thì mọi tìm kiếm chỉ có một trang đều bắn cảnh báo giả — và đội sẽ học cách phớt lờ cảnh báo, phá đúng cơ chế bảo vệ quan trọng nhất. Adapter phân biệt: **thiếu hẳn `<script id="hibid-state">` = hỏng thật (throw); có state nhưng không có `lotSearch` = hết trang (trả rỗng)**.
+
+### 3b. User-Agent không ảnh hưởng kết quả
+
+Đã đo đối chứng cùng từ khóa: UA Chrome và UA trung thực `BidPortal/0.1 (... contact: ...)` đều trả **35 kết quả như nhau**. Nghĩa là **không cần giả dạng trình duyệt** — giữ UA trung thực kèm email liên hệ, đúng khuyến nghị pháp lý, mà không mất gì.
+
+### 3c. Giới hạn đã biết: ~10% lot thiếu Auction
+
+Trang search không hydrate đủ `Auction` cho mọi `Lot` (đo thực tế: 4/39 lot không có auction đi kèm). Hệ quả: các lot đó **thiếu `currency` và `ends_at_utc`**.
+
+Đã giảm nhẹ bằng cách lấy currency dự phòng từ chuỗi `estimate` (có sẵn mã tiền tệ). Phần còn lại (3/39) đành để trống.
+
+Không khắc phục triệt để ở v1: cách duy nhất là fetch riêng từng trang lot, tức nhân số request lên hàng chục lần — đúng thứ `daily_page_budget` sinh ra để ngăn. UI phải hiển thị tử tế khi thiếu hai trường này.
 
 ### 4. Field của Lot (dùng cho normalize)
 

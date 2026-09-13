@@ -3,6 +3,13 @@ import type { RawAuction, RawListing, SearchPage } from '../types'
 
 const STATE_RE = /<script[^>]*id="hibid-state"[^>]*>([\s\S]*?)<\/script>/
 
+/**
+ * HiBid tra ve 100 lot cho mot trang day. Mot trang it hon 100 la trang cuoi.
+ * KHONG dung pagedResults.pageLength cho viec nay: no luon bang dung so lot
+ * duoc hydrate, nen so sanh voi no thi khong bao gio phat hien duoc trang cuoi.
+ */
+export const HIBID_PAGE_SIZE = 100
+
 export class HibidParseError extends Error {}
 
 interface ApolloRef {
@@ -172,18 +179,18 @@ export function parseHibidSearchHtml(html: string): SearchPage {
   const rootQuery = apollo.ROOT_QUERY
   if (!rootQuery) throw new HibidParseError('thieu ROOT_QUERY')
 
+  // Trang vuot qua ket qua cuoi cung duoc HiBid render KHONG kem lotSearch.
+  // Day la "het ket qua", khong phai adapter hong — phan biet duoc hai truong
+  // hop nay moi giu duoc canh bao co y nghia.
   const searchKey = Object.keys(rootQuery).find((k) => k.startsWith('lotSearch('))
-  if (!searchKey) throw new HibidParseError('thieu ROOT_QUERY.lotSearch(...)')
+  if (!searchKey) return { listings: [], isLastPage: true }
 
   const paged = (rootQuery[searchKey] as ApolloEntity | undefined)?.pagedResults as
     | ApolloEntity
     | undefined
-  if (!paged) throw new HibidParseError('thieu pagedResults')
+  if (!paged) return { listings: [], isLastPage: true }
 
   const results = Array.isArray(paged.results) ? paged.results : []
-  // pageLength la kich thuoc trang cua HiBid. Canh bao trong SPIKE: totalCount
-  // chi dem so lot duoc hydrate, KHONG phai tong ket qua toan cuc.
-  const pageLength = num(paged.pageLength) ?? results.length
 
   const listings: RawListing[] = []
 
@@ -236,5 +243,5 @@ export function parseHibidSearchHtml(html: string): SearchPage {
     })
   }
 
-  return { listings, pageLength }
+  return { listings, isLastPage: listings.length < HIBID_PAGE_SIZE }
 }

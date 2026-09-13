@@ -50,7 +50,10 @@ describe('parseHibidSearchHtml — contract', () => {
 
   it('lay duoc dung so lot cua mot trang', () => {
     expect(page.listings.length).toBe(100)
-    expect(page.pageLength).toBe(100)
+  })
+
+  it('trang day 100 lot chua phai trang cuoi', () => {
+    expect(page.isLastPage).toBe(false)
   })
 
   it('moi listing co du field bat buoc va dung kieu', () => {
@@ -99,6 +102,15 @@ describe('parseHibidSearchHtml — contract', () => {
   it('danh dau gio ket thuc la xap xi voi phien live', () => {
     const live = page.listings.find((l) => l.auction?.format === 'live')
     if (live) expect(live.endTimeIsApproximate).toBe(true)
+  })
+
+  it('trang vuot qua ket qua cuoi la het trang, KHONG phai loi', () => {
+    // HiBid render trang nay khong kem lotSearch. Neu coi day la loi thi moi
+    // tim kiem mot trang deu bao dong gia, va doi se hoc cach phot lo canh bao.
+    const beyondLast = '<script id="hibid-state">{"apollo.state":{"ROOT_QUERY":{"__typename":"Query"}}}</script>'
+    const result = parseHibidSearchHtml(beyondLast)
+    expect(result.listings).toEqual([])
+    expect(result.isLastPage).toBe(true)
   })
 
   it('bao loi ro rang khi HiBid bo TransferState', () => {
