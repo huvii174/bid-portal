@@ -86,7 +86,6 @@ export const searchJobs = pgTable(
     requestedByUserId: uuid('requested_by_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),
-    savedSearchId: uuid('saved_search_id'),
     status: text('status').notNull().default('queued').$type<SearchJobStatus>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     /** Mốc để nhặt lại job mồ côi khi worker chết giữa chừng. */
@@ -203,7 +202,6 @@ export const listings = pgTable(
 
     // Thời gian: UTC + tz gốc + cờ xấp xỉ (phiên live không có giờ đóng chính xác).
     endsAtUtc: timestamp('ends_at_utc', { withTimezone: true }),
-    endsAtTz: text('ends_at_tz'),
     endTimeIsApproximate: boolean('end_time_is_approximate').notNull().default(false),
 
     status: text('status').notNull().default('active').$type<ListingStatus>(),
@@ -248,41 +246,7 @@ export const listingKeywords = pgTable(
   ],
 )
 
-export const savedSearches = pgTable(
-  'saved_searches',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    keyword: text('keyword').notNull(),
-    cadenceHours: integer('cadence_hours').notNull().default(12),
-    enabled: boolean('enabled').notNull().default(true),
-    lastRunAt: timestamp('last_run_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex('saved_searches_user_keyword_uq').on(t.userId, t.keyword)],
-)
 
-/**
- * "Hàng mới" = lần đầu xuất hiện cặp (savedSearch, listing).
- * notifiedAt set một lần duy nhất -> không bao giờ báo lại, kể cả khi
- * listing stale rồi xuất hiện trở lại (AC11).
- */
-export const searchMatches = pgTable(
-  'search_matches',
-  {
-    savedSearchId: uuid('saved_search_id')
-      .notNull()
-      .references(() => savedSearches.id, { onDelete: 'cascade' }),
-    listingId: uuid('listing_id')
-      .notNull()
-      .references(() => listings.id, { onDelete: 'cascade' }),
-    firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
-    notifiedAt: timestamp('notified_at', { withTimezone: true }),
-  },
-  (t) => [primaryKey({ columns: [t.savedSearchId, t.listingId] })],
-)
 
 export const watchlistItems = pgTable(
   'watchlist_items',
@@ -322,4 +286,3 @@ export type NewListing = typeof listings.$inferInsert
 export type Auction = typeof auctions.$inferSelect
 export type AdapterRun = typeof adapterRuns.$inferSelect
 export type SearchJob = typeof searchJobs.$inferSelect
-export type SavedSearch = typeof savedSearches.$inferSelect

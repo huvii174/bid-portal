@@ -7,8 +7,20 @@ import { finishRun, startRun } from './health'
 import { markMissing, upsertListings } from './upsert'
 import type { AdapterRunStatus } from '@bid/db/schema'
 
+// Adapter giu pacer ben trong, nen phai dung chung mot the hien cho ca tien
+// trinh. Tao moi theo tung job se reset giãn cach, va hai job lien tiep se ban
+// vao nguon khong cach nhau chut nao.
+const adapters = new Map<string, Adapter>()
+
 function adapterFor(sourceId: string, minIntervalMs: number): Adapter | null {
-  if (sourceId === 'hibid') return createHibidAdapter(minIntervalMs)
+  const existing = adapters.get(sourceId)
+  if (existing) return existing
+
+  if (sourceId === 'hibid') {
+    const adapter = createHibidAdapter(minIntervalMs)
+    adapters.set(sourceId, adapter)
+    return adapter
+  }
   return null
 }
 
@@ -17,6 +29,8 @@ export interface SourceResult {
   status: AdapterRunStatus | 'disabled'
   itemsFound: number
   pagesFetched: number
+  /** Het so trang cho phep nhung nguon van con hang. */
+  truncated: boolean
   errorText?: string
 }
 
@@ -37,7 +51,13 @@ export async function runSearch(
 
   for (const source of allSources) {
     if (!source.enabled) {
-      results.push({ sourceId: source.id, status: 'disabled', itemsFound: 0, pagesFetched: 0 })
+      results.push({
+        sourceId: source.id,
+        status: 'disabled',
+        itemsFound: 0,
+        pagesFetched: 0,
+        truncated: false,
+      })
       continue
     }
 
@@ -48,6 +68,7 @@ export async function runSearch(
         status: 'error',
         itemsFound: 0,
         pagesFetched: 0,
+        truncated: false,
         errorText: 'chua co adapter cho nguon nay',
       })
       continue
@@ -58,6 +79,7 @@ export async function runSearch(
     let pagesFetched = 0
     let status: AdapterRunStatus = 'ok'
     let errorText: string | undefined
+    let reachedEnd = false
 
     try {
       await assertPageBudget(db, pagesPerSearch)
@@ -66,7 +88,10 @@ export async function runSearch(
         const result = await adapter.search(keyword, page)
         pagesFetched += result.httpRequests
         collected.push(...result.listings)
-        if (result.isLastPage) break
+        if (result.isLastPage) {
+          reachedEnd = true
+          break
+        }
       }
     } catch (err) {
       status = err instanceof PageBudgetExceededError ? 'blocked' : 'error'
@@ -76,6 +101,15 @@ export async function runSearch(
     if (collected.length > 0) {
       const { listingIds } = await upsertListings(db, source.id, keyword, collected)
       await markMissing(db, source.id, keyword, listingIds)
+    }
+
+    // Chay het pagesPerSearch ma nguon VAN con hang = ket qua bi cat. Truoc
+    // day truong hop nay bao 'xong' nhu binh thuong, dung kieu thu thap thieu
+    // am tham ma OPERATIONS.md phai bu bang dem tay hang thang — trong khi
+    // vong lap giu san dung bien can thiet.
+    const truncated = status === 'ok' && !reachedEnd
+    if (truncated) {
+      errorText = `cat bot o ${pagesPerSearch} trang — nguon van con hang`
     }
 
     // finishRun phai chay TRUOC khi quyet dinh cache: chinh no moi nang mot lan
@@ -110,6 +144,7 @@ export async function runSearch(
       status: finalStatus,
       itemsFound: collected.length,
       pagesFetched,
+      truncated,
       errorText,
     })
   }

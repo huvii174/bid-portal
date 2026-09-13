@@ -38,7 +38,6 @@ export interface RawListing {
   rawEstimateText?: string
 
   endsAtUtc?: Date
-  endsAtTz?: string
   endTimeIsApproximate: boolean
 
   status: ListingStatus

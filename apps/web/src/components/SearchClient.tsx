@@ -9,6 +9,7 @@ interface SourceProgress {
   status: string
   itemsFound: number
   pagesFetched: number
+  truncated: boolean
   errorText: string | null
 }
 
@@ -143,9 +144,13 @@ export function SearchClient({ timezone, initialKeyword }: { timezone: string; i
       {sourcesState.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
           {sourcesState.map((s) => (
-            <span key={s.sourceId} className={`badge${s.status === 'error' || s.status === 'zero_results' ? ' warn' : ''}`}>
+            <span
+              key={s.sourceId}
+              className={`badge${s.status === 'error' || s.status === 'zero_results' || s.truncated ? ' warn' : ''}`}
+            >
               {s.name}: {SOURCE_LABEL[s.status] ?? s.status}
               {s.status === 'ok' && ` · ${s.itemsFound} món`}
+              {s.truncated && ' · còn nữa, chưa lấy hết'}
             </span>
           ))}
         </div>

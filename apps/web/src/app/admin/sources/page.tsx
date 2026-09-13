@@ -31,6 +31,12 @@ export default async function AdminSourcesPage() {
     .where(gte(adapterRuns.startedAt, startOfUtcDay()))
   const used = usage?.total ?? 0
 
+  // Worker chet thi khong ai ghi adapter_runs nua — su VANG MAT cua ban ghi la
+  // tin hieu duy nhat, nen phai hien ra chu khong the doi no tu bao.
+  const lastRunAgeMinutes = runs[0]
+    ? (Date.now() - runs[0].startedAt.getTime()) / 60_000
+    : null
+
   return (
     <>
       <h1 style={{ marginTop: 0 }}>Quản trị nguồn</h1>
@@ -63,6 +69,13 @@ export default async function AdminSourcesPage() {
           Chạm trần thì worker dừng crawl cho tới hết ngày, không phải chỉ cảnh báo.
         </p>
       </section>
+
+      {lastRunAgeMinutes !== null && lastRunAgeMinutes > 60 && (
+        <p className="badge warn" style={{ display: 'inline-block', marginBottom: 18 }}>
+          Không có lần crawl nào trong {Math.round(lastRunAgeMinutes / 60)} giờ qua — worker có
+          thể đã dừng.
+        </p>
+      )}
 
       <section style={{ marginBottom: 26 }}>
         <h2 style={{ fontSize: 16 }}>Nguồn</h2>

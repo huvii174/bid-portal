@@ -329,7 +329,6 @@ export function parseHibidSearchHtml(html: string, page = 1): SearchPage {
       rawEstimateText: estimate?.raw,
 
       endsAtUtc: auction?.endsAtUtc,
-      endsAtTz: 'UTC',
       // Phien live dong tung lot noi tiep nhau, gio dong cua ca phien chi la xap xi.
       endTimeIsApproximate: auction?.format === 'live',
 

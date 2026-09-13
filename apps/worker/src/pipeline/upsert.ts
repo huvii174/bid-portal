@@ -106,7 +106,6 @@ export async function upsertListings(
         estimateHigh: money(raw.estimateHigh),
         rawEstimateText: raw.rawEstimateText,
         endsAtUtc: raw.endsAtUtc,
-        endsAtTz: raw.endsAtTz,
         endTimeIsApproximate: raw.endTimeIsApproximate,
         status: raw.status,
         rawJson: raw.raw as object,

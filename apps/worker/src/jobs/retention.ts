@@ -1,4 +1,4 @@
-import { and, inArray, isNotNull, lt, sql } from 'drizzle-orm'
+import { and, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import { listings, type Db } from '@bid/db'
 
 const RETENTION_DAYS = Number(process.env.RETENTION_DAYS ?? '90')
@@ -16,8 +16,10 @@ export async function purgeOldListings(db: Db): Promise<number> {
   const result = await db.delete(listings).where(
     and(
       inArray(listings.status, ['ended', 'sold', 'withdrawn', 'stale']),
-      isNotNull(listings.endsAtUtc),
-      lt(listings.endsAtUtc, cutoff),
+      // ~10% lot khong co Auction nen khong co ends_at_utc. Chi loc theo
+      // ends_at_utc thi chung bat tu, pha cam ket giu toi da 90 ngay —
+      // last_seen_at la moc du phong cho dung nhom do.
+      or(lt(listings.endsAtUtc, cutoff), and(isNull(listings.endsAtUtc), lt(listings.lastSeenAt, cutoff))),
       sql`not exists (select 1 from watchlist_items w where w.listing_id = ${listings.id})`,
     ),
   )

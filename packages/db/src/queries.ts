@@ -31,6 +31,9 @@ export interface ResultRow {
   watchlisted: boolean
 }
 
+/** Tran ket qua tra ve mot lan. 2 trang x 100 mon x (so nguon) la du rong. */
+const MAX_RESULTS = 400
+
 export function normalizeKeyword(raw: string): string {
   return raw.trim().replace(/\s+/g, ' ').toLowerCase()
 }
@@ -74,8 +77,26 @@ export async function getResultsForKeyword(
       watchlistItems,
       and(eq(watchlistItems.listingId, listings.id), eq(watchlistItems.userId, userId)),
     )
-    .where(eq(listingKeywords.keyword, keyword))
-    .orderBy(asc(listingKeywords.rank))
+    .where(
+      and(
+        eq(listingKeywords.keyword, keyword),
+        // Chi lay nhung mon CO MAT trong lan crawl gan nhat cua tu khoa nay.
+        // listing_keywords khong bao gio bi xoa, nen thieu dieu kien nay thi
+        // sau vai tuan mot tu khoa se tra ve hang tram dong lan ca hang da ket
+        // thuc tu thang truoc, moi dong giu rank cu — xep hang tro nen vo nghia.
+        eq(listingKeywords.missingStreak, 0),
+      ),
+    )
+    // rank la vi tri trong ket qua CUA MOT NGUON. Khi co nguon thu hai, rank 0
+    // cua hai nguon se hoa nhau, nen can khoa phu tat dinh de thu tu khong doi
+    // giua hai lan tai trang. Mon dang mo luon dung truoc mon da dong.
+    .orderBy(
+      sql`case when ${listings.status} = 'active' then 0 else 1 end`,
+      asc(listingKeywords.rank),
+      asc(listings.sourceId),
+      asc(listings.id),
+    )
+    .limit(MAX_RESULTS)
 
   return rows.map(({ rank: _rank, ...row }) => row)
 }
