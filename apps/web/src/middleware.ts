@@ -3,7 +3,7 @@ import { verifySession } from './lib/session'
 import { DEFAULT_LOCALE, getDictionary } from './i18n'
 import { sessionCookie } from './lib/session'
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login']
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/health']
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl

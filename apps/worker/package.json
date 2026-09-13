@@ -15,9 +15,7 @@
   "dependencies": {
     "@bid/db": "*",
     "drizzle-orm": "^0.45.2",
-    "resend": "^6.28.0"
-  },
-  "devDependencies": {
+    "resend": "^6.28.0",
     "tsx": "^4.23.13"
   }
 }

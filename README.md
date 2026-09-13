@@ -14,7 +14,18 @@ Portal nội bộ gom hàng đồ cổ đang đấu giá từ nhiều sàn về 
 - Giao diện song ngữ **Anh / Việt**, mặc định tiếng Anh; mỗi người tự chọn ngôn ngữ và tiền tệ riêng.
 - Trang quản trị: kill-switch từng nguồn, lịch sử các lần crawl, cảnh báo khi worker ngừng chạy.
 
-## Chạy thử
+## Triển khai (Docker)
+
+```bash
+cp .env.example .env      # điền POSTGRES_PASSWORD và AUTH_SECRET
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml run --rm migrate \
+  npx tsx scripts/seed-admin.ts ban@congty.com
+```
+
+Postgres cố tình **không publish cổng** — web và worker nối qua mạng nội bộ của compose. `migrate` chạy migration + seed nguồn rồi thoát; web/worker chỉ khởi động sau khi nó thoát thành công. Chi tiết trong `docs/OPERATIONS.md`.
+
+## Chạy thử (máy dev)
 
 ```bash
 docker compose up -d

@@ -19,7 +19,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const t = getDictionary(locale)
 
   return (
-    <html lang={t.htmlLang}>
+    // Tiện ích mở rộng của trình duyệt hay gắn thêm thuộc tính vào <html>
+    // trước khi React hydrate (ví dụ `jd-enabled`), gây cảnh báo lệch hydration
+    // không đến từ mã của ta. Cờ này CHỈ áp cho chính thẻ này, không lan xuống
+    // cây con — nên lệch thật bên trong app vẫn báo bình thường.
+    <html lang={t.htmlLang} suppressHydrationWarning>
       <body>
         {session && (
           <header className="topbar">

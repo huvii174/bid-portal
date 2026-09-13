@@ -1,0 +1,88 @@
+# Full stack for deployment. Local development still uses docker-compose.yml,
+# which runs Postgres alone.
+#
+#   cp .env.example .env      # then fill in the required values
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Create the first admin once the stack is up:
+#   docker compose -f docker-compose.prod.yml run --rm migrate \
+#     npx tsx scripts/seed-admin.ts you@company.com
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bid
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+      POSTGRES_DB: bid
+    # Deliberately no published port: web and worker reach it over the compose
+    # network. Publishing it would expose the database to the host, and on a
+    # cloud box that usually means exposing it to the internet.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bid -d bid']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Runs to completion, then web and worker start. Both steps are idempotent,
+  # so a redeploy re-runs them harmlessly.
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: "postgres://bid:${POSTGRES_PASSWORD:?}@postgres:5432/bid"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "npx drizzle-kit migrate && npx tsx scripts/seed-sources.ts"
+    restart: 'no'
+
+  web:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgres://bid:${POSTGRES_PASSWORD:?}@postgres:5432/bid"
+      AUTH_SECRET: "${AUTH_SECRET:?generate one with openssl rand -base64 32}"
+      NODE_ENV: production
+    ports:
+      - '${WEB_PORT:-3100}:3100'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      # Hits /api/health, which touches the database — a web process that
+      # cannot reach Postgres is not healthy, however well it serves HTML.
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3100/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  worker:
+    build:
+      context: .
+      target: worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgres://bid:${POSTGRES_PASSWORD:?}@postgres:5432/bid"
+      NODE_ENV: production
+      # Without a key the adapter alerts are only written to the log, so nobody
+      # hears about a broken source. Set it before relying on this in anger.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-bid-portal@example.com}
+      # Identify the crawler honestly, with an address that reaches your team.
+      CRAWLER_USER_AGENT: ${CRAWLER_USER_AGENT:-}
+      RETENTION_DAYS: ${RETENTION_DAYS:-90}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

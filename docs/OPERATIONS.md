@@ -119,6 +119,38 @@ Hai nguyên tắc:
 
 Mã tiền tệ trong dữ liệu thật có rác — HiBid trả về cả `CDN`, `Can`, `CAN` cho đô la Canada vì nhà đấu giá tự gõ. `normalizeCurrency()` xử lý ở tầng upsert; gặp mã lạ mới thì thêm vào bảng alias trong `packages/db/src/currency.ts`.
 
+## Triển khai bằng Docker
+
+```bash
+cp .env.example .env      # điền POSTGRES_PASSWORD và AUTH_SECRET
+docker compose -f docker-compose.prod.yml up -d --build
+
+# tạo admin đầu tiên (chạy một lần)
+docker compose -f docker-compose.prod.yml run --rm migrate \
+  npx tsx scripts/seed-admin.ts ban@congty.com
+```
+
+`docker-compose.yml` (không có `.prod`) vẫn là bản dành cho máy dev: nó chỉ chạy Postgres.
+
+Bốn dịch vụ:
+
+| Dịch vụ | Việc |
+|---|---|
+| `postgres` | **Không publish cổng nào.** web/worker nói chuyện qua mạng nội bộ của compose; publish ra host trên máy cloud thường đồng nghĩa với phơi ra internet |
+| `migrate` | Chạy migration rồi seed nguồn, xong thì thoát. web và worker chờ nó **thoát thành công** mới khởi động |
+| `web` | Next.js bản standalone. Healthcheck gọi `/api/health`, và endpoint đó **chạm vào DB** — web không nối được Postgres thì không thể coi là khoẻ |
+| `worker` | Crawler + hàng đợi job + bảo trì mỗi 6h |
+
+Biến môi trường bắt buộc: `POSTGRES_PASSWORD`, `AUTH_SECRET` (≥32 ký tự, không phải placeholder — app từ chối khởi động). Nên đặt: `RESEND_API_KEY` (thiếu thì cảnh báo adapter chỉ vào log), `CRAWLER_USER_AGENT` (email liên hệ thật của đội).
+
+Một `Dockerfile` ở gốc với nhiều target (`web`, `worker`, `migrate`) dùng chung tầng cài đặt dependency. Worker dùng tầng `--omit=dev` riêng vì nó không cần vitest/drizzle-kit.
+
+## LiveAuctioneers thỉnh thoảng trả 403
+
+Đã gặp thật khi kiểm thử: cùng một từ khóa, cùng đoạn mã, lúc 403 lúc 200 — kể cả `curl` thô và `wget` từ trong container cũng 200 ngay sau đó. Đây là chặn theo nhịp/ngưỡng phía họ, **không phải adapter hỏng**.
+
+Nên: **một lần chạy `error` đơn lẻ của LiveAuctioneers chưa phải sự cố.** Chỉ điều tra khi nó lặp lại nhiều lần liên tiếp. Adapter cố tình **không** thử lại khi gặp 403 — thử lại ngay lúc đang bị giới hạn nhịp chỉ làm tình hình tệ hơn.
+
 ## Giới hạn đã biết (đừng báo nhầm thành bug)
 
 - **~10% lot thiếu tiền tệ và giờ kết thúc.** Trang tìm kiếm của HiBid không kèm đủ dữ liệu Auction cho mọi lot. Khắc phục triệt để cần fetch từng lot riêng, tức nhân số request lên hàng chục lần. Xem `docs/SPIKE-hibid.md`.
