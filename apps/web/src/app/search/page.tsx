@@ -1,4 +1,5 @@
 import { requireSession } from '../../lib/auth'
+import { getFxContext } from '../../lib/fx'
 import { getDisplayTimezone } from '../../lib/settings'
 import { SearchClient } from '../../components/SearchClient'
 
@@ -7,9 +8,10 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<{ q?: string; forbidden?: string }>
 }) {
-  await requireSession()
+  const session = await requireSession()
   const { q, forbidden } = await searchParams
   const timezone = await getDisplayTimezone()
+  const fx = await getFxContext(session.userId)
 
   return (
     <>
@@ -19,7 +21,7 @@ export default async function SearchPage({
           Bạn không có quyền vào trang quản trị.
         </p>
       )}
-      <SearchClient timezone={timezone} initialKeyword={q ?? ''} />
+      <SearchClient timezone={timezone} initialKeyword={q ?? ''} fx={fx} />
     </>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { convertCurrency } from '@bid/db/currency'
 
 export interface ResultRow {
   id: string
@@ -23,7 +24,11 @@ export interface ResultRow {
   watchlisted: boolean
 }
 
-const SOURCE_NAME: Record<string, string> = { hibid: 'HiBid' }
+const SOURCE_NAME: Record<string, string> = {
+  hibid: 'HiBid',
+  liveauctioneers: 'LiveAuctioneers',
+  invaluable: 'Invaluable',
+}
 
 /** Nhãn phải nói rõ đây là loại giá gì — không bao giờ để người xem tự đoán. */
 const PRICE_LABEL: Record<string, string> = {
@@ -88,7 +93,20 @@ function countdown(endsAtUtc: string | null): string | null {
   return `còn ${mins} phút`
 }
 
-export function ListingCard({ row, timezone }: { row: ResultRow; timezone: string }) {
+export interface FxProps {
+  displayCurrency: string | null
+  perUsd: Record<string, number>
+}
+
+export function ListingCard({
+  row,
+  timezone,
+  fx,
+}: {
+  row: ResultRow
+  timezone: string
+  fx?: FxProps
+}) {
   const [watchlisted, setWatchlisted] = useState(row.watchlisted)
   const [pending, setPending] = useState(false)
 
@@ -103,6 +121,18 @@ export function ListingCard({ row, timezone }: { row: ResultRow; timezone: strin
   const showEstimate = estimate && row.priceKind !== 'estimate'
   const remaining = countdown(row.endsAtUtc)
   const endedBadge = STATUS_LABEL[row.status]
+
+  // Quy doi chi de SO SANH. Gia goc o tren van la so tien thuc phai tra, nen
+  // no giu vai tro chinh; thieu ty gia thi khong hien gi ca, khong bao gio doan.
+  const converted =
+    fx?.displayCurrency && row.currency && row.priceAmount !== null
+      ? convertCurrency({
+          amount: Number(row.priceAmount),
+          from: row.currency,
+          to: fx.displayCurrency,
+          perUsd: fx.perUsd,
+        })
+      : null
 
   async function toggleWatch() {
     if (pending) return
@@ -149,6 +179,12 @@ export function ListingCard({ row, timezone }: { row: ResultRow; timezone: strin
           </span>
           {price ?? '—'}
         </div>
+        {converted !== null && row.currency !== fx?.displayCurrency && (
+          <div className="muted" title="Quy đổi tham khảo theo tỷ giá cập nhật hằng ngày">
+            ≈ {converted.toLocaleString('vi-VN', { maximumFractionDigits: 0 })}{' '}
+            {fx?.displayCurrency}
+          </div>
+        )}
         {showEstimate && (
           <div className="muted" title={row.rawEstimateText ?? undefined}>
             Ước tính: {estimate}

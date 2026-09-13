@@ -4,6 +4,7 @@ import {
   auctions,
   listingKeywords,
   listings,
+  normalizeCurrency,
   type Db,
 } from '@bid/db'
 import type { RawAuction, RawListing } from '../adapters/types'
@@ -46,7 +47,7 @@ async function upsertAuction(
       auctionHouseId: houseId,
       title: raw.title,
       format: raw.format,
-      currency: raw.currency,
+      currency: normalizeCurrency(raw.currency),
       buyerPremiumRate: raw.buyerPremiumRate?.toString(),
       startsAtUtc: raw.startsAtUtc,
       endsAtUtc: raw.endsAtUtc,
@@ -57,7 +58,7 @@ async function upsertAuction(
         auctionHouseId: houseId,
         title: raw.title,
         format: raw.format,
-        currency: raw.currency,
+        currency: normalizeCurrency(raw.currency),
         endsAtUtc: raw.endsAtUtc,
       },
     })
@@ -97,7 +98,7 @@ export async function upsertListings(
         thumbUrl: raw.thumbUrl,
         sourceCategory: raw.sourceCategory,
         lotNo: raw.lotNo,
-        currency: raw.currency,
+        currency: normalizeCurrency(raw.currency),
         priceKind: raw.priceKind,
         priceAmount: money(raw.priceAmount),
         priceAmountHigh: money(raw.priceAmountHigh),
@@ -119,7 +120,7 @@ export async function upsertListings(
           description: raw.description,
           thumbUrl: raw.thumbUrl,
           lotNo: raw.lotNo,
-          currency: raw.currency,
+          currency: normalizeCurrency(raw.currency),
           priceKind: raw.priceKind,
           priceAmount: money(raw.priceAmount),
           priceAmountHigh: money(raw.priceAmountHigh),

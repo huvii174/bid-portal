@@ -26,3 +26,5 @@ export function getDb() {
 export type Db = ReturnType<typeof getDb>
 
 export * from './queries'
+
+export * from './currency'

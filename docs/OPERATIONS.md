@@ -75,11 +75,40 @@ Ghi lại kết quả vào đây:
 |---|---|---|---|---|
 | | | | | |
 
+## Ba nguồn, ba tính chất khác hẳn nhau
+
+| Nguồn | Cách lấy | robots.txt | Giãn cách | Lot/trang | Độ bền |
+|---|---|---|---|---|---|
+| **HiBid** | `fetch` + JSON nhúng (`hibid-state`) | **Cho phép** `/lots?q=` | 2s | 100 | Khá |
+| **LiveAuctioneers** | `fetch` + JSON nhúng (`window.__data`) | **Chặn** `/search?` | 5s | 24 | Khá |
+| **Invaluable** | Gọi thẳng **Algolia** bằng khoá nhúng trong trang | **Chặn** `/search?keyword=`, `Crawl-delay: 10` | 10s | 40 | **Thấp nhất** |
+
+**Invaluable là mắt xích yếu nhất.** Kết quả của họ render phía client qua Algolia, nên adapter gọi thẳng API Algolia bằng cặp khoá search-only mà trang của họ nhúng công khai. Hệ quả:
+
+- Khoá **có thể bị đổi bất cứ lúc nào** → adapter chết ngay lập tức. Dấu hiệu: `adapter_runs` ghi HTTP 401/403 kèm ghi chú trong thông báo lỗi.
+- Việc này **tiêu vào hạn mức Algolia trả phí của Invaluable**, không phải của ta. Đó là lý do giãn cách để 10s và nên giữ số từ khóa thấp.
+- Khi bị chặn: **tắt nguồn ở `/admin/sources`**, đừng đi sửa parser. Có thể đặt khoá mới qua `INVALUABLE_ALGOLIA_APP_ID` / `INVALUABLE_ALGOLIA_API_KEY` / `INVALUABLE_ALGOLIA_INDEX` nếu tìm được, nhưng hãy coi đó là dấu hiệu nên cân nhắc bỏ nguồn này.
+
+**Dữ liệu cá nhân:** phản hồi Algolia của Invaluable kèm `watched` / `watchedRefs` — danh sách ID người dùng của họ đang theo dõi lot. Adapter **loại bỏ các trường này ngay tại tầng parse**; chúng không bao giờ chạm tới DB. Có test khoá hành vi này (`parse.test.ts`). Đừng gỡ bỏ nó.
+
+**Số lot mỗi trang chênh nhau nhiều** (100 / 40 / 24), nên `pages_per_search` cho độ phủ rất khác nhau giữa các nguồn: 2 trang = 200 món ở HiBid nhưng chỉ 48 ở LiveAuctioneers. Nếu thấy LiveAuctioneers hay bị gắn "còn nữa, chưa lấy hết", đó là lý do.
+
+## Quy đổi tiền tệ
+
+Tỷ giá lấy từ `open.er-api.com` (công khai, không cần key, 166 loại tiền **kể cả VND** — ECB/frankfurter không có VND). Job bảo trì làm mới mỗi 6 giờ; chạy tay bằng `npm run -w @bid/worker fx`.
+
+Hai nguyên tắc:
+
+1. **Giá gốc luôn là giá chính.** Quy đổi chỉ hiện thêm dòng `≈` bên dưới, vì số tiền thực phải trả là số tiền gốc.
+2. **Thiếu tỷ giá thì không hiện gì**, không bao giờ đoán. Hiện một con số quy đổi sai cho người đang quyết định trả bao nhiêu còn tệ hơn là không hiện.
+
+Mã tiền tệ trong dữ liệu thật có rác — HiBid trả về cả `CDN`, `Can`, `CAN` cho đô la Canada vì nhà đấu giá tự gõ. `normalizeCurrency()` xử lý ở tầng upsert; gặp mã lạ mới thì thêm vào bảng alias trong `packages/db/src/currency.ts`.
+
 ## Giới hạn đã biết (đừng báo nhầm thành bug)
 
 - **~10% lot thiếu tiền tệ và giờ kết thúc.** Trang tìm kiếm của HiBid không kèm đủ dữ liệu Auction cho mọi lot. Khắc phục triệt để cần fetch từng lot riêng, tức nổ ngân sách request. Xem `docs/SPIKE-hibid.md`.
-- **Chưa quy đổi tiền tệ.** Kết quả có cả USD và CAD, hiển thị nguyên tệ. So sánh giữa hai loại tiền là việc của người xem. FX thuộc v2.
-- **Chưa gộp trùng giữa các sàn.** Chỉ có một nguồn nên chưa cần; thuộc v2 khi thêm LiveAuctioneers/Invaluable.
+- **Chưa gộp trùng giữa các sàn.** LiveAuctioneers và Invaluable cùng bán catalog của nhiều nhà đấu giá giống nhau, nên một món có thể hiện 2 lần. Đã hoãn có chủ ý; làm khi thấy phiền thật.
+- **Chưa xếp hạng chéo nguồn.** Thứ tự hiện tại là tất định (hạng trong nguồn → tên nguồn → id) nhưng không phải "liên quan nhất trước". Hoãn có chủ ý.
 - **Chưa có saved search và email digest.** Thuộc v1.5, làm sau khi đội dùng thật 2 tuần.
 - **Đăng nhập chưa giới hạn số lần thử.** Thời gian phản hồi đã được làm phẳng nên không lộ email nào là tài khoản thật, nhưng không có khoá tạm sau nhiều lần sai. Mật khẩu yếu vẫn đoán được qua nhiều ngày — đặt mật khẩu mạnh cho mọi tài khoản, và thêm giới hạn trước khi hệ thống chứa thứ gì đáng mất.
 - **Hai request bị bỏ khỏi ngân sách khi cả lần gọi đầu lẫn lần thử lại đều lỗi.** Trường hợp này ghi `status=error` và gửi cảnh báo, nên nó tự lộ diện chứ không âm thầm — khác hẳn các lỗ im lặng đã bịt.

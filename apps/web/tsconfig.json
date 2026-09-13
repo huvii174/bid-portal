@@ -25,6 +25,7 @@
       "@bid/db": [
         "../../packages/db/src/index.ts"
       ],
+      "@bid/db/currency": ["../../packages/db/src/currency.ts"],
       "@bid/db/schema": [
         "../../packages/db/src/schema.ts"
       ]

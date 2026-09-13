@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ListingCard, type ResultRow } from './ListingCard'
+import { ListingCard, type FxProps, type ResultRow } from './ListingCard'
 
 interface SourceProgress {
   sourceId: string
@@ -22,7 +22,15 @@ const SOURCE_LABEL: Record<string, string> = {
   blocked: 'đã chạm trần ngân sách',
 }
 
-export function SearchClient({ timezone, initialKeyword }: { timezone: string; initialKeyword: string }) {
+export function SearchClient({
+  timezone,
+  initialKeyword,
+  fx,
+}: {
+  timezone: string
+  initialKeyword: string
+  fx: FxProps
+}) {
   const [keyword, setKeyword] = useState(initialKeyword)
   const [busy, setBusy] = useState(false)
   const [results, setResults] = useState<ResultRow[]>([])
@@ -183,7 +191,7 @@ export function SearchClient({ timezone, initialKeyword }: { timezone: string; i
           }}
         >
           {results.map((r) => (
-            <ListingCard key={r.id} row={r} timezone={timezone} />
+            <ListingCard key={r.id} row={r} timezone={timezone} fx={fx} />
           ))}
         </div>
       )}

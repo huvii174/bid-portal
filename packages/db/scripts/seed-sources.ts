@@ -1,4 +1,7 @@
 import { getDb, getPool, sources, settings } from '../src/index'
+import { loadRootEnv } from './env'
+
+loadRootEnv()
 
 const SOURCES = [
   {
@@ -9,6 +12,24 @@ const SOURCES = [
     minRequestIntervalMs: 2000,
     robotsNote:
       'robots.txt (User-agent: *) khong chan /lots?q=. Chi chan /auctions/past/*?q=*, livecatalog, webcast, auctioneer, account, catalog/print, current/map. Khong co Crawl-delay cho UA *; ta tu ap >=2s.',
+  },
+  {
+    id: 'liveauctioneers',
+    name: 'LiveAuctioneers',
+    baseUrl: 'https://www.liveauctioneers.com',
+    enabled: true,
+    minRequestIntervalMs: 5000,
+    robotsNote:
+      'robots.txt CHAN /search? va /search/? cho UA *. Ta van crawl theo quyet dinh da ghi trong plan; bu lai bang giãn cach >=5s. Trang tra state trong window.__data, khong can trinh duyet.',
+  },
+  {
+    id: 'invaluable',
+    name: 'Invaluable',
+    baseUrl: 'https://www.invaluable.com',
+    enabled: true,
+    minRequestIntervalMs: 10_000,
+    robotsNote:
+      'robots.txt CHAN /search?keyword= va dat Crawl-delay: 10 cho UA *. Ket qua render phia client qua Algolia; adapter goi thang Algolia bang khoa search-only nhung cong khai trong trang. DAY LA NGUON DE BI CAT NHAT: khoa co the doi bat cu luc nao va no tieu vao han muc tra phi cua ho.',
   },
 ]
 

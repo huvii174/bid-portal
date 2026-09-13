@@ -1,6 +1,9 @@
 import { randomBytes } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { getDb, getPool, users } from '../src/index'
+import { loadRootEnv } from './env'
+
+loadRootEnv()
 
 /**
  * Tao tai khoan admin dau tien.

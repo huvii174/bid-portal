@@ -4,6 +4,7 @@ import { loadRootEnv } from './env'
 import { runSearch } from './pipeline/run-search'
 import { runRefresh } from './jobs/refresh-listings'
 import { purgeOldListings } from './jobs/retention'
+import { refreshFxRates } from './jobs/fx'
 
 loadRootEnv()
 
@@ -84,7 +85,10 @@ function startMaintenance(db: Db): void {
     try {
       const { closed, refreshed } = await runRefresh(db)
       const purged = await purgeOldListings(db)
-      console.log(`[bao tri] dong ${closed} · lam moi ${refreshed} · xoa ${purged} qua han`)
+      const fx = await refreshFxRates(db)
+      console.log(
+        `[bao tri] dong ${closed} · lam moi ${refreshed} · xoa ${purged} qua han · ty gia ${fx}`,
+      )
     } catch (err) {
       console.error('[bao tri] loi:', (err as Error).message)
     }

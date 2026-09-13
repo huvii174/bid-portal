@@ -1,6 +1,8 @@
 import { eq } from 'drizzle-orm'
 import { keywordCache, sources, type Db } from '@bid/db'
 import { createHibidAdapter } from '../adapters/hibid/index'
+import { createLiveAuctioneersAdapter } from '../adapters/liveauctioneers/index'
+import { createInvaluableAdapter } from '../adapters/invaluable/index'
 import type { Adapter, RawListing } from '../adapters/types'
 import { assertPageBudget, getNumericSetting, PageBudgetExceededError } from '../rate-limit'
 import { finishRun, startRun } from './health'
@@ -16,12 +18,18 @@ function adapterFor(sourceId: string, minIntervalMs: number): Adapter | null {
   const existing = adapters.get(sourceId)
   if (existing) return existing
 
-  if (sourceId === 'hibid') {
-    const adapter = createHibidAdapter(minIntervalMs)
-    adapters.set(sourceId, adapter)
-    return adapter
+  const factory: Record<string, (ms: number) => Adapter> = {
+    hibid: createHibidAdapter,
+    liveauctioneers: createLiveAuctioneersAdapter,
+    invaluable: createInvaluableAdapter,
   }
-  return null
+
+  const create = factory[sourceId]
+  if (!create) return null
+
+  const adapter = create(minIntervalMs)
+  adapters.set(sourceId, adapter)
+  return adapter
 }
 
 export interface SourceResult {

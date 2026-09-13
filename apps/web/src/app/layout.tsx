@@ -1,6 +1,8 @@
 import './globals.css'
 import type { ReactNode } from 'react'
 import { getSession } from '../lib/auth'
+import { getFxContext } from '../lib/fx'
+import { CurrencyPicker } from '../components/CurrencyPicker'
 
 export const metadata = {
   title: 'Bid Portal',
@@ -9,6 +11,7 @@ export const metadata = {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const session = await getSession()
+  const fx = session ? await getFxContext(session.userId) : null
 
   return (
     <html lang="vi">
@@ -28,6 +31,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                     <a href="/admin/settings">Cài đặt</a>
                   </>
                 )}
+                <CurrencyPicker value={fx?.displayCurrency ?? null} />
                 <span className="muted">{session.email}</span>
                 <form action="/api/auth/logout" method="post">
                   <button type="submit">Thoát</button>

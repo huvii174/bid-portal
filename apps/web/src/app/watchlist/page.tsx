@@ -8,11 +8,13 @@ import {
 } from '@bid/db'
 import { requireSession } from '../../lib/auth'
 import { getDisplayTimezone } from '../../lib/settings'
+import { getFxContext } from '../../lib/fx'
 import { ListingCard, type ResultRow } from '../../components/ListingCard'
 
 export default async function WatchlistPage() {
   const session = await requireSession()
   const timezone = await getDisplayTimezone()
+  const fx = await getFxContext(session.userId)
 
   const rows = await getDb()
     .select({
@@ -65,7 +67,7 @@ export default async function WatchlistPage() {
           }}
         >
           {items.map((row) => (
-            <ListingCard key={row.id} row={row} timezone={timezone} />
+            <ListingCard key={row.id} row={row} timezone={timezone} fx={fx} />
           ))}
         </div>
       )}

@@ -57,9 +57,11 @@ export function parseEstimate(
     .map((m) => parseAmount(m[0]))
     .filter((n): n is number => n !== undefined)
 
-  if (numbers.length === 0) return { currency, raw }
-  const low = numbers[0]
-  const high = numbers.length > 1 ? numbers[1] : numbers[0]
+  // Uoc tinh 0 nghia la nha dau gia khong cong bo, khong phai "dang gia 0".
+  const usable = numbers.filter((n) => n > 0)
+  if (usable.length === 0) return { currency, raw }
+  const low = usable[0]
+  const high = usable.length > 1 ? usable[1] : usable[0]
   return { low, high, currency, raw }
 }
 

@@ -64,6 +64,8 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   role: text('role').notNull().default('member').$type<Role>(),
+  /** Tien te hien thi de so sanh. Gia GOC luon duoc giu va hien song song. */
+  displayCurrency: text('display_currency'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
@@ -276,6 +278,16 @@ export const notifications = pgTable('notifications', {
   sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+/**
+ * Ty gia so voi USD: `perUsd` = bao nhieu don vi tien nay doi duoc 1 USD.
+ * Quy doi A -> B: amountB = amountA / perUsd[A] * perUsd[B].
+ */
+export const fxRates = pgTable('fx_rates', {
+  currency: text('currency').primaryKey(),
+  perUsd: numeric('per_usd', { precision: 20, scale: 8 }).notNull(),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const settings = pgTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
@@ -288,3 +300,4 @@ export type NewListing = typeof listings.$inferInsert
 export type Auction = typeof auctions.$inferSelect
 export type AdapterRun = typeof adapterRuns.$inferSelect
 export type SearchJob = typeof searchJobs.$inferSelect
+export type FxRate = typeof fxRates.$inferSelect
