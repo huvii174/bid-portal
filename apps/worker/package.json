@@ -8,7 +8,8 @@
     "start": "tsx src/main.ts",
     "search": "tsx src/cli/search.ts",
     "crawl": "tsx src/cli/crawl.ts",
-    "refresh": "tsx src/cli/refresh.ts"
+    "refresh": "tsx src/cli/refresh.ts",
+    "purge": "tsx src/cli/purge.ts"
   },
   "dependencies": {
     "@bid/db": "*",

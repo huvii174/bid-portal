@@ -2,6 +2,8 @@ import { eq, sql } from 'drizzle-orm'
 import { getDb, getPool, searchJobs, type Db } from '@bid/db'
 import { loadRootEnv } from './env'
 import { runSearch } from './pipeline/run-search'
+import { runRefresh } from './jobs/refresh-listings'
+import { purgeOldListings } from './jobs/retention'
 
 loadRootEnv()
 
@@ -51,9 +53,28 @@ async function processJob(db: Db, job: { id: string; keyword: string }): Promise
   }
 }
 
+const MAINTENANCE_INTERVAL_MS = 6 * 3600_000
+
+/** Chay ngay khi khoi dong roi lap moi 6h, khong can them ha tang cron. */
+function startMaintenance(db: Db): void {
+  const tick = async () => {
+    try {
+      const { closed, refreshed } = await runRefresh(db)
+      const purged = await purgeOldListings(db)
+      console.log(`[bao tri] dong ${closed} · lam moi ${refreshed} · xoa ${purged} qua han`)
+    } catch (err) {
+      console.error('[bao tri] loi:', (err as Error).message)
+    }
+  }
+
+  void tick()
+  setInterval(() => void tick(), MAINTENANCE_INTERVAL_MS).unref()
+}
+
 async function loop(): Promise<void> {
   const db = getDb()
-  console.log(`worker san sang · poll moi ${POLL_INTERVAL_MS}ms`)
+  startMaintenance(db)
+  console.log(`worker san sang · poll moi ${POLL_INTERVAL_MS}ms · bao tri moi 6h`)
 
   for (;;) {
     try {
