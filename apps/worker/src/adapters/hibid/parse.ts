@@ -154,14 +154,12 @@ function buildAuction(
   }
 }
 
-/**
- * HiBid nhúng Apollo cache vào trang tìm kiếm, nên ta đọc JSON có cấu trúc
- * thay vì bám vào CSS selector. Xem docs/SPIKE-hibid.md.
- */
-export function parseHibidSearchHtml(html: string): SearchPage {
+function readApolloState(html: string): Record<string, ApolloEntity> {
   const match = html.match(STATE_RE)
   if (!match?.[1]) {
-    throw new HibidParseError('khong tim thay <script id="hibid-state"> — HiBid co the da bo TransferState')
+    throw new HibidParseError(
+      'khong tim thay <script id="hibid-state"> — HiBid co the da bo TransferState',
+    )
   }
 
   let state: unknown
@@ -175,6 +173,42 @@ export function parseHibidSearchHtml(html: string): SearchPage {
     | Record<string, ApolloEntity>
     | undefined
   if (!apollo) throw new HibidParseError('thieu khoa "apollo.state"')
+  return apollo
+}
+
+export interface LotRefresh {
+  priceKind: PriceKind
+  priceAmount?: number
+  rawPriceText?: string
+  status: ListingStatus
+}
+
+/**
+ * Trang mot lot mang theo dung entity Lot:<id> trong cache, nen tra cuu truc
+ * tiep theo id — khong phu thuoc vao hinh dang khoa ROOT_QUERY.
+ */
+export function parseHibidLotHtml(html: string, sourceListingId: string): LotRefresh | null {
+  const apollo = readApolloState(html)
+  const lot = apollo[`Lot:${sourceListingId}`]
+  if (!lot) return null
+
+  const lotState = (lot.lotState as ApolloEntity | undefined) ?? {}
+  const price = livePrice(lotState, lot)
+
+  return {
+    priceKind: price.kind,
+    priceAmount: price.amount,
+    rawPriceText: price.rawText,
+    status: listingStatus(lotState),
+  }
+}
+
+/**
+ * HiBid nhúng Apollo cache vào trang tìm kiếm, nên ta đọc JSON có cấu trúc
+ * thay vì bám vào CSS selector. Xem docs/SPIKE-hibid.md.
+ */
+export function parseHibidSearchHtml(html: string): SearchPage {
+  const apollo = readApolloState(html)
 
   const rootQuery = apollo.ROOT_QUERY
   if (!rootQuery) throw new HibidParseError('thieu ROOT_QUERY')
