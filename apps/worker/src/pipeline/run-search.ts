@@ -78,12 +78,23 @@ export async function runSearch(
       await markMissing(db, source.id, keyword, listingIds)
     }
 
-    // Cache CHI khi lan crawl thanh cong tron ven. Neu trang 2 loi ma van ghi
-    // cache day TTL thi suot 6h sau moi tim kiem se tra ve danh sach thieu qua
-    // nhanh cached — khong con tin hieu 'partial' nao de UI canh bao.
-    // Nguoc lai, ket qua 0 mon van phai duoc cache: khong thi moi lan tim lai
-    // tu khoa da chet deu crawl lai va dot ngan sach vo han.
-    if (status === 'ok') {
+    // finishRun phai chay TRUOC khi quyet dinh cache: chinh no moi nang mot lan
+    // chay 0 ket qua len 'zero_results' khi tu khoa nay truoc day CO ket qua.
+    const finalStatus = await finishRun(db, runId, source.id, keyword, {
+      status,
+      itemsFound: collected.length,
+      pagesFetched,
+      errorText,
+    })
+
+    // Cache CHI khi lan crawl thanh cong tron ven. Cache mot lan 'partial' se
+    // khien suot 6h sau moi tim kiem tra danh sach thieu qua nhanh cached, mat
+    // sach tin hieu canh bao. Cache mot lan 'zero_results' con te hon: do la
+    // dau hieu adapter HONG, ma nguoi dung se thay "khong tim thay mon nao"
+    // trong im lang suot 6 tieng.
+    // Nguoc lai, ket qua 0 mon THAT SU (tu khoa chua tung co hang) van phai
+    // duoc cache, neu khong moi lan tim lai deu crawl lai va dot ngan sach.
+    if (finalStatus === 'ok') {
       const expiresAt = new Date(Date.now() + ttlHours * 3600_000)
       await db
         .insert(keywordCache)
@@ -93,13 +104,6 @@ export async function runSearch(
           set: { fetchedAt: new Date(), expiresAt },
         })
     }
-
-    const finalStatus = await finishRun(db, runId, source.id, keyword, {
-      status,
-      itemsFound: collected.length,
-      pagesFetched,
-      errorText,
-    })
 
     results.push({
       sourceId: source.id,

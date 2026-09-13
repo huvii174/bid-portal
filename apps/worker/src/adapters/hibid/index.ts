@@ -1,5 +1,5 @@
 import type { Adapter, SearchPage } from '../types'
-import { parseHibidSearchHtml } from './parse'
+import { HibidParseError, parseHibidSearchHtml } from './parse'
 import { createPacer } from '../../rate-limit'
 
 const BASE = 'https://hibid.com'
@@ -32,27 +32,39 @@ export function createHibidAdapter(minRequestIntervalMs = 2000): Adapter {
       url.searchParams.set('q', keyword)
       if (page > 1) url.searchParams.set('apage', String(page))
 
-      await pace()
+      const fetchOnce = async (): Promise<SearchPage> => {
+        await pace()
 
-      let res: Response
+        let res: Response
+        try {
+          res = await fetch(url, {
+            headers: {
+              'user-agent': USER_AGENT,
+              accept: 'text/html,application/xhtml+xml',
+              'accept-language': 'en-US,en;q=0.9',
+            },
+            signal: AbortSignal.timeout(30_000),
+          })
+        } catch (err) {
+          throw new HibidFetchError(`khong goi duoc HiBid: ${(err as Error).message}`)
+        }
+
+        if (!res.ok) {
+          throw new HibidFetchError(`HiBid tra ve HTTP ${res.status}`, res.status)
+        }
+
+        return parseHibidSearchHtml(await res.text(), page)
+      }
+
       try {
-        res = await fetch(url, {
-          headers: {
-            'user-agent': USER_AGENT,
-            accept: 'text/html,application/xhtml+xml',
-            'accept-language': 'en-US,en;q=0.9',
-          },
-          signal: AbortSignal.timeout(30_000),
-        })
+        return await fetchOnce()
       } catch (err) {
-        throw new HibidFetchError(`khong goi duoc HiBid: ${(err as Error).message}`)
+        // HiBid thinh thoang tra ve trang khong co lotSearch mot cach ngau
+        // nhien. Thu lai mot lan de mot truc trac thoang qua khong bien thanh
+        // "0 ket qua"; van that bai that neu no lap lai.
+        if (err instanceof HibidParseError) return fetchOnce()
+        throw err
       }
-
-      if (!res.ok) {
-        throw new HibidFetchError(`HiBid tra ve HTTP ${res.status}`, res.status)
-      }
-
-      return parseHibidSearchHtml(await res.text())
     },
   }
 }

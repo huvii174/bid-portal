@@ -145,13 +145,22 @@ describe('parseHibidSearchHtml — contract', () => {
     if (live) expect(live.endTimeIsApproximate).toBe(true)
   })
 
-  it('trang vuot qua ket qua cuoi la het trang, KHONG phai loi', () => {
-    // HiBid render trang nay khong kem lotSearch. Neu coi day la loi thi moi
-    // tim kiem mot trang deu bao dong gia, va doi se hoc cach phot lo canh bao.
-    const beyondLast = '<script id="hibid-state">{"apollo.state":{"ROOT_QUERY":{"__typename":"Query"}}}</script>'
-    const result = parseHibidSearchHtml(beyondLast)
+  const noSearchNode =
+    '<script id="hibid-state">{"apollo.state":{"ROOT_QUERY":{"__typename":"Query"}}}</script>'
+
+  it('TRANG 2 khong co lotSearch la het trang, KHONG phai loi', () => {
+    // Neu coi day la loi thi moi tim kiem mot trang deu bao dong gia, va doi
+    // se hoc cach phot lo canh bao.
+    const result = parseHibidSearchHtml(noSearchNode, 2)
     expect(result.listings).toEqual([])
     expect(result.isLastPage).toBe(true)
+  })
+
+  it('TRANG 1 khong co lotSearch phai NEM LOI, khong duoc coi la het hang', () => {
+    // HiBid thinh thoang tra ve trang bat thuong nay. Coi no la "het hang" se
+    // ghi 0 ket qua trong im lang cho tu khoa dang co 100 mon — dung kieu thu
+    // thap thieu am tham ma he thong canh bao sinh ra de chan.
+    expect(() => parseHibidSearchHtml(noSearchNode, 1)).toThrow(HibidParseError)
   })
 
   it('bao loi ro rang khi HiBid bo TransferState', () => {

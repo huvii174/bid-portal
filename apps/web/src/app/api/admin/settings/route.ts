@@ -19,10 +19,26 @@ function isValidTimezone(value: string): boolean {
   }
 }
 
+/**
+ * Route nay nhan form POST kem cookie — dung dang "simple request" ma CORS
+ * khong chan. SameSite=Lax hien da du, nhung de CSRF chi treo vao MOT co che
+ * duy nhat la mong manh; kiem tra Origin cho no mot lop doc lap.
+ */
+function isSameOrigin(req: Request): boolean {
+  const origin = req.headers.get('origin')
+  if (!origin) return true // form POST cung goc co the khong gui Origin
+  try {
+    return new URL(origin).origin === new URL(req.url).origin
+  } catch {
+    return false
+  }
+}
+
 export async function POST(req: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   if (session.role !== 'admin') return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  if (!isSameOrigin(req)) return NextResponse.json({ error: 'bad origin' }, { status: 403 })
 
   const form = await req.formData()
   const db = getDb()

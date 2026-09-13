@@ -257,22 +257,32 @@ export function parseHibidLotHtml(html: string, sourceListingId: string): LotRef
  * HiBid nhúng Apollo cache vào trang tìm kiếm, nên ta đọc JSON có cấu trúc
  * thay vì bám vào CSS selector. Xem docs/SPIKE-hibid.md.
  */
-export function parseHibidSearchHtml(html: string): SearchPage {
+export function parseHibidSearchHtml(html: string, page = 1): SearchPage {
   const apollo = readApolloState(html)
 
   const rootQuery = apollo.ROOT_QUERY
   if (!rootQuery) throw new HibidParseError('thieu ROOT_QUERY')
 
   // Trang vuot qua ket qua cuoi cung duoc HiBid render KHONG kem lotSearch.
-  // Day la "het ket qua", khong phai adapter hong — phan biet duoc hai truong
-  // hop nay moi giu duoc canh bao co y nghia.
+  // Tren trang 2+ day la "het ket qua" binh thuong; nhung tren TRANG 1 thi
+  // khong — HiBid thinh thoang tra ve dang nay mot cach ngau nhien, va coi no
+  // la "het hang" se ghi 0 ket qua trong im lang cho mot tu khoa dang co 100
+  // mon. Nguoi goi phai bao biet day la trang may de phan biet duoc.
   const searchKey = Object.keys(rootQuery).find((k) => k.startsWith('lotSearch('))
-  if (!searchKey) return { listings: [], isLastPage: true }
+  const paged = searchKey
+    ? ((rootQuery[searchKey] as ApolloEntity | undefined)?.pagedResults as
+        | ApolloEntity
+        | undefined)
+    : undefined
 
-  const paged = (rootQuery[searchKey] as ApolloEntity | undefined)?.pagedResults as
-    | ApolloEntity
-    | undefined
-  if (!paged) return { listings: [], isLastPage: true }
+  if (!paged) {
+    if (page === 1) {
+      throw new HibidParseError(
+        'trang 1 khong co lotSearch — HiBid tra ve trang bat thuong, KHONG phai het hang',
+      )
+    }
+    return { listings: [], isLastPage: true }
+  }
 
   const results = Array.isArray(paged.results) ? paged.results : []
 

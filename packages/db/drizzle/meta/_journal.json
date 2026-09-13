@@ -15,6 +15,13 @@
       "when": 1789271531703,
       "tag": "0001_salty_ben_parker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789272274249,
+      "tag": "0002_careless_strong_guy",
+      "breakpoints": true
     }
   ]
 }

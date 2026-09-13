@@ -109,7 +109,6 @@ export async function upsertListings(
         endsAtTz: raw.endsAtTz,
         endTimeIsApproximate: raw.endTimeIsApproximate,
         status: raw.status,
-        missingStreak: 0,
         rawJson: raw.raw as object,
       })
       .onConflictDoUpdate({
@@ -133,7 +132,6 @@ export async function upsertListings(
           endTimeIsApproximate: raw.endTimeIsApproximate,
           status: raw.status,
           lastSeenAt: new Date(),
-          missingStreak: 0,
           rawJson: raw.raw as object,
         },
       })

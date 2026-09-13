@@ -209,8 +209,6 @@ export const listings = pgTable(
     status: text('status').notNull().default('active').$type<ListingStatus>(),
     firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
-    /** >=3 lần crawl liên tiếp vắng mặt -> đánh dấu stale, không xoá (AC3). */
-    missingStreak: integer('missing_streak').notNull().default(0),
     rawJson: jsonb('raw_json'),
   },
   (t) => [

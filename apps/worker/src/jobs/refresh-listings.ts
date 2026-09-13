@@ -1,5 +1,5 @@
 import { and, eq, gte, inArray, isNotNull, lt, or } from 'drizzle-orm'
-import { listings, sources, watchlistItems, type Db } from '@bid/db'
+import { listingKeywords, listings, sources, watchlistItems, type Db } from '@bid/db'
 import { parseHibidLotHtml } from '../adapters/hibid/parse'
 import { createPacer, assertPageBudget, PageBudgetExceededError } from '../rate-limit'
 import { finishRun, startRun } from '../pipeline/health'
@@ -73,6 +73,7 @@ export async function refreshWatchedListings(db: Db, maxItems = 25): Promise<num
   const runId = await startRun(db, 'hibid', '(lam moi listing)')
   let updated = 0
   let fetched = 0
+  let failed = 0
 
   for (const row of rows) {
     await pace()
@@ -107,16 +108,28 @@ export async function refreshWatchedListings(db: Db, maxItems = 25): Promise<num
           lastSeenAt: new Date(),
         })
         .where(eq(listings.id, row.id))
+
+      // Da xac nhan tan mat lot nay con song, nen phai xoa streak vang mat.
+      // Neu khong, mon vua duoc dua ve 'active' se bi crawl ke tiep danh dau
+      // stale lai ngay — nhap nhay vinh vien tren watchlist.
+      await db
+        .update(listingKeywords)
+        .set({ missingStreak: 0 })
+        .where(eq(listingKeywords.listingId, row.id))
+
       updated++
     } catch (err) {
+      failed++
       console.warn(`[refresh] ${row.sourceListingId}: ${(err as Error).message}`)
     }
   }
 
+  // Hardcode 'ok' se lam mot lan refresh hong hoan toan khong canh bao ai.
   await finishRun(db, runId, 'hibid', '(lam moi listing)', {
-    status: 'ok',
+    status: failed === rows.length ? 'error' : 'ok',
     itemsFound: updated,
     pagesFetched: fetched,
+    errorText: failed > 0 ? `${failed}/${rows.length} lot lam moi that bai` : undefined,
   })
 
   return updated
