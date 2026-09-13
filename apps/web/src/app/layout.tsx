@@ -22,7 +22,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <nav className="links">
                 <a href="/search">Tìm kiếm</a>
                 <a href="/watchlist">Quan tâm</a>
-                {session.role === 'admin' && <a href="/admin/sources">Quản trị</a>}
+                {session.role === 'admin' && (
+                  <>
+                    <a href="/admin/sources">Nguồn</a>
+                    <a href="/admin/settings">Cài đặt</a>
+                  </>
+                )}
                 <span className="muted">{session.email}</span>
                 <form action="/api/auth/logout" method="post">
                   <button type="submit">Thoát</button>
