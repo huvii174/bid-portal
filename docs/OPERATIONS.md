@@ -81,6 +81,8 @@ Ghi lại kết quả vào đây:
 - **Chưa quy đổi tiền tệ.** Kết quả có cả USD và CAD, hiển thị nguyên tệ. So sánh giữa hai loại tiền là việc của người xem. FX thuộc v2.
 - **Chưa gộp trùng giữa các sàn.** Chỉ có một nguồn nên chưa cần; thuộc v2 khi thêm LiveAuctioneers/Invaluable.
 - **Chưa có saved search và email digest.** Thuộc v1.5, làm sau khi đội dùng thật 2 tuần.
+- **Đăng nhập chưa giới hạn số lần thử.** Thời gian phản hồi đã được làm phẳng nên không lộ email nào là tài khoản thật, nhưng không có khoá tạm sau nhiều lần sai. Mật khẩu yếu vẫn đoán được qua nhiều ngày — đặt mật khẩu mạnh cho mọi tài khoản, và thêm giới hạn trước khi hệ thống chứa thứ gì đáng mất.
+- **Hai request bị bỏ khỏi ngân sách khi cả lần gọi đầu lẫn lần thử lại đều lỗi.** Trường hợp này ghi `status=error` và gửi cảnh báo, nên nó tự lộ diện chứ không âm thầm — khác hẳn các lỗ im lặng đã bịt.
 
 ## Chi phí thật, dài hạn
 
