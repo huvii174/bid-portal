@@ -76,7 +76,14 @@ export async function runSearch(
     if (collected.length > 0) {
       const { listingIds } = await upsertListings(db, source.id, keyword, collected)
       await markMissing(db, source.id, keyword, listingIds)
+    }
 
+    // Cache CHI khi lan crawl thanh cong tron ven. Neu trang 2 loi ma van ghi
+    // cache day TTL thi suot 6h sau moi tim kiem se tra ve danh sach thieu qua
+    // nhanh cached — khong con tin hieu 'partial' nao de UI canh bao.
+    // Nguoc lai, ket qua 0 mon van phai duoc cache: khong thi moi lan tim lai
+    // tu khoa da chet deu crawl lai va dot ngan sach vo han.
+    if (status === 'ok') {
       const expiresAt = new Date(Date.now() + ttlHours * 3600_000)
       await db
         .insert(keywordCache)

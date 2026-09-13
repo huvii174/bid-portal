@@ -16,7 +16,7 @@ const POLL_INTERVAL_MS = 1500
 async function claimNextJob(db: Db): Promise<{ id: string; keyword: string } | null> {
   const result = await db.execute(sql`
     update search_jobs
-       set status = 'running'
+       set status = 'running', started_at = now(), attempts = attempts + 1
      where id = (
        select id from search_jobs
         where status = 'queued'
@@ -29,6 +29,29 @@ async function claimNextJob(db: Db): Promise<{ id: string; keyword: string } | n
 
   const row = result.rows[0] as { id: string; keyword: string } | undefined
   return row ?? null
+}
+
+const STUCK_AFTER_MINUTES = 10
+const MAX_ATTEMPTS = 3
+
+/**
+ * Worker bi OOM-kill hoac redeploy giua chung se de lai job o 'running' ma
+ * khong ai nhat lai — client thi poll mai khong dung. Dua chung ve hang doi,
+ * va bo cuoc sau MAX_ATTEMPTS de mot job doc khong quay vong vo han.
+ */
+async function requeueStuckJobs(db: Db): Promise<void> {
+  const result = await db.execute(sql`
+    update search_jobs
+       set status = case when attempts >= ${MAX_ATTEMPTS} then 'failed' else 'queued' end,
+           finished_at = case when attempts >= ${MAX_ATTEMPTS} then now() else null end
+     where status = 'running'
+       and started_at < now() - make_interval(mins => ${STUCK_AFTER_MINUTES})
+    returning id, status
+  `)
+
+  if (result.rows.length > 0) {
+    console.log(`[nhat lai] ${result.rows.length} job mo coi`)
+  }
 }
 
 async function processJob(db: Db, job: { id: string; keyword: string }): Promise<void> {
@@ -80,6 +103,7 @@ async function loop(): Promise<void> {
     try {
       const job = await claimNextJob(db)
       if (!job) {
+        await requeueStuckJobs(db)
         await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
         continue
       }

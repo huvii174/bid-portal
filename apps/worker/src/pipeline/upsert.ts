@@ -147,7 +147,7 @@ export async function upsertListings(
       .values({ listingId: row.id, keyword, sourceId, rank: index })
       .onConflictDoUpdate({
         target: [listingKeywords.listingId, listingKeywords.keyword],
-        set: { rank: index, lastMatchedAt: new Date() },
+        set: { rank: index, lastMatchedAt: new Date(), missingStreak: 0 },
       })
   }
 
@@ -164,22 +164,38 @@ export async function markMissing(
   keyword: string,
   seenListingIds: string[],
 ): Promise<number> {
-  const matchedThisKeyword = db
-    .select({ id: listingKeywords.listingId })
-    .from(listingKeywords)
-    .where(and(eq(listingKeywords.keyword, keyword), eq(listingKeywords.sourceId, sourceId)))
+  // Buoc 1: tang streak tren dung cap (listing, keyword) vua khong thay.
+  const missConditions = [
+    eq(listingKeywords.keyword, keyword),
+    eq(listingKeywords.sourceId, sourceId),
+  ]
+  if (seenListingIds.length > 0) {
+    missConditions.push(notInArray(listingKeywords.listingId, seenListingIds))
+  }
 
-  const conditions = [eq(listings.sourceId, sourceId), inArray(listings.id, matchedThisKeyword)]
-  if (seenListingIds.length > 0) conditions.push(notInArray(listings.id, seenListingIds))
+  await db
+    .update(listingKeywords)
+    .set({ missingStreak: sql`${listingKeywords.missingStreak} + 1` })
+    .where(and(...missConditions))
 
+  // Buoc 2: chi danh dau stale khi MOI tu khoa dan toi listing deu mat dau no
+  // >=3 lan. Mot mon con dung top cua bat ky tu khoa nao thi van dang song.
   const result = await db
     .update(listings)
-    .set({
-      missingStreak: sql`${listings.missingStreak} + 1`,
-      status: sql`case when ${listings.missingStreak} + 1 >= 3 and ${listings.status} = 'active'
-                       then 'stale' else ${listings.status} end`,
-    })
-    .where(and(...conditions))
+    .set({ status: 'stale' })
+    .where(
+      and(
+        eq(listings.sourceId, sourceId),
+        eq(listings.status, 'active'),
+        sql`not exists (
+          select 1 from listing_keywords lk
+           where lk.listing_id = ${listings.id} and lk.missing_streak < 3
+        )`,
+        sql`exists (
+          select 1 from listing_keywords lk where lk.listing_id = ${listings.id}
+        )`,
+      ),
+    )
 
   return result.rowCount ?? 0
 }

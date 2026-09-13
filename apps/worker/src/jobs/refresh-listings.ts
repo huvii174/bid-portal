@@ -2,6 +2,7 @@ import { and, eq, gte, inArray, isNotNull, lt, or } from 'drizzle-orm'
 import { listings, sources, watchlistItems, type Db } from '@bid/db'
 import { parseHibidLotHtml } from '../adapters/hibid/parse'
 import { createPacer, assertPageBudget, PageBudgetExceededError } from '../rate-limit'
+import { finishRun, startRun } from '../pipeline/health'
 
 const USER_AGENT =
   process.env.CRAWLER_USER_AGENT ??
@@ -67,29 +68,43 @@ export async function refreshWatchedListings(db: Db, maxItems = 25): Promise<num
   }
 
   const pace = createPacer(hibid.minRequestIntervalMs)
+  // Luot fetch cua job nay cung phai tinh vao ngan sach, khong thi "phanh cung"
+  // chi chan crawl con refresh van am tham tieu ~100 trang/ngay.
+  const runId = await startRun(db, 'hibid', '(lam moi listing)')
   let updated = 0
+  let fetched = 0
 
   for (const row of rows) {
     await pace()
     try {
+      // Host phai co dinh: URL nay dung tu du lieu crawl ve.
+      if (new URL(row.url).hostname !== 'hibid.com') continue
+
       const res = await fetch(row.url, {
         headers: { 'user-agent': USER_AGENT, accept: 'text/html' },
         signal: AbortSignal.timeout(30_000),
       })
+      fetched++
       if (!res.ok) continue
 
       const lot = parseHibidLotHtml(await res.text(), row.sourceListingId)
       if (!lot) continue
 
+      // `?? null` cho MOI truong: drizzle bo qua key co gia tri undefined, nen
+      // thieu no la gia tri cu con sot lai canh gia moi — vi du rawPriceText
+      // "Current bid 500" nam canh priceAmount da null.
       await db
         .update(listings)
         .set({
           priceKind: lot.priceKind,
           priceAmount: lot.priceAmount?.toFixed(2) ?? null,
-          rawPriceText: lot.rawPriceText,
+          priceAmountHigh: lot.priceAmountHigh?.toFixed(2) ?? null,
+          rawPriceText: lot.rawPriceText ?? null,
+          estimateLow: lot.estimateLow?.toFixed(2) ?? null,
+          estimateHigh: lot.estimateHigh?.toFixed(2) ?? null,
+          rawEstimateText: lot.rawEstimateText ?? null,
           status: lot.status,
           lastSeenAt: new Date(),
-          missingStreak: 0,
         })
         .where(eq(listings.id, row.id))
       updated++
@@ -97,6 +112,12 @@ export async function refreshWatchedListings(db: Db, maxItems = 25): Promise<num
       console.warn(`[refresh] ${row.sourceListingId}: ${(err as Error).message}`)
     }
   }
+
+  await finishRun(db, runId, 'hibid', '(lam moi listing)', {
+    status: 'ok',
+    itemsFound: updated,
+    pagesFetched: fetched,
+  })
 
   return updated
 }

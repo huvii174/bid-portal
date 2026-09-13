@@ -50,15 +50,28 @@ function money(amount: string | null, currency: string | null): string | null {
   return currency ? `${formatted} ${currency}` : formatted
 }
 
+/**
+ * Khoảng giá. Một giá trị đơn (low = high) hiện gọn "400 USD" chứ không phải
+ * "400–400 USD"; ngược lại, khoảng thật PHẢI hiện đủ cả hai đầu — cắt còn cận
+ * dưới sẽ biến "ước tính 2.000–4.000" thành "2.000", đúng kiểu hiển thị sai giá
+ * mà cả mô hình dữ liệu này sinh ra để ngăn.
+ */
+function range(low: string | null, high: string | null, currency: string | null): string | null {
+  if (low === null) return null
+  const lowNum = Number(low)
+  if (!Number.isFinite(lowNum)) return null
+
+  const fmt = (n: number) => n.toLocaleString('vi-VN', { maximumFractionDigits: 2 })
+  const suffix = currency ? ` ${currency}` : ''
+  const highNum = high === null ? null : Number(high)
+
+  return highNum !== null && Number.isFinite(highNum) && highNum !== lowNum
+    ? `${fmt(lowNum)}–${fmt(highNum)}${suffix}`
+    : `${fmt(lowNum)}${suffix}`
+}
+
 function estimateText(row: ResultRow): string | null {
-  const low = money(row.estimateLow, row.currency)
-  if (!low) return null
-  // Ước tính một giá trị được lưu low = high; hiện "400" chứ không phải "400–400".
-  if (row.estimateHigh && row.estimateHigh !== row.estimateLow) {
-    const high = Number(row.estimateHigh).toLocaleString('vi-VN', { maximumFractionDigits: 2 })
-    return `${Number(row.estimateLow).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}–${high}${row.currency ? ` ${row.currency}` : ''}`
-  }
-  return low
+  return range(row.estimateLow, row.estimateHigh, row.currency)
 }
 
 function countdown(endsAtUtc: string | null): string | null {
@@ -79,7 +92,12 @@ export function ListingCard({ row, timezone }: { row: ResultRow; timezone: strin
   const [watchlisted, setWatchlisted] = useState(row.watchlisted)
   const [pending, setPending] = useState(false)
 
-  const price = money(row.priceAmount, row.currency)
+  // Khi priceKind='estimate' thi gia chinh CHINH LA khoang uoc tinh, nen phai
+  // hien ca hai dau; cac loai gia khac la mot con so don.
+  const price =
+    row.priceKind === 'estimate'
+      ? range(row.priceAmount, row.priceAmountHigh, row.currency)
+      : money(row.priceAmount, row.currency)
   const estimate = estimateText(row)
   // Chi hien estimate rieng khi no KHONG phai gia chinh dang hien.
   const showEstimate = estimate && row.priceKind !== 'estimate'

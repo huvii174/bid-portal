@@ -9,9 +9,6 @@ if (existsSync(rootEnv)) process.loadEnvFile(rootEnv)
 
 const config: NextConfig = {
   transpilePackages: ['@bid/db'],
-  images: {
-    remotePatterns: [{ protocol: 'https', hostname: 'cdn.hibid.com' }],
-  },
 }
 
 export default config

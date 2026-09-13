@@ -2,7 +2,13 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { HibidParseError, parseEstimate, parseHibidSearchHtml, slugify } from './parse'
+import {
+  HibidParseError,
+  parseAmount,
+  parseEstimate,
+  parseHibidSearchHtml,
+  slugify,
+} from './parse'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const fixture = readFileSync(join(here, 'fixtures/search-tiffany-lamp.html'), 'utf8')
@@ -35,6 +41,32 @@ describe('parseEstimate', () => {
     expect(parseEstimate(null)).toBeUndefined()
     expect(parseEstimate(42)).toBeUndefined()
   })
+
+  it('doc dung dinh dang chau Au (dau phay la thap phan)', () => {
+    // Truoc khi sua: "1.500,00 EUR" bi doc thanh 1,5 va 0.
+    const r = parseEstimate('1.500,00 - 2.750,50 EUR')
+    expect(r?.low).toBe(1500)
+    expect(r?.high).toBe(2750.5)
+    expect(r?.currency).toBe('EUR')
+  })
+
+  it('van doc dung dinh dang Anh-My', () => {
+    const r = parseEstimate('2,000.00 - 4,000.00 USD')
+    expect(r?.low).toBe(2000)
+    expect(r?.high).toBe(4000)
+  })
+})
+
+describe('parseAmount', () => {
+  it.each([
+    ['2,000.00', 2000],
+    ['1.500,00', 1500],
+    ['950', 950],
+    ['1,125.75', 1125.75],
+    ['1.125,75', 1125.75],
+  ])('%s -> %s', (input, expected) => {
+    expect(parseAmount(input)).toBe(expected)
+  })
 })
 
 describe('slugify', () => {
@@ -54,6 +86,15 @@ describe('parseHibidSearchHtml — contract', () => {
 
   it('trang day 100 lot chua phai trang cuoi', () => {
     expect(page.isLastPage).toBe(false)
+  })
+
+  it('mot lot bi bo qua tren trang day KHONG lam tuong nham la trang cuoi', () => {
+    // isLastPage phai so voi so ref tho. Neu so voi mang da loc thi chi can
+    // mot lot hong (thieu id/lead) la 99 < 100 -> khong bao gio lay trang 2.
+    const broken = fixture.replace(/"lead":"[^"]*"/, '"lead":""')
+    const result = parseHibidSearchHtml(broken)
+    expect(result.listings.length).toBeLessThan(100)
+    expect(result.isLastPage).toBe(false)
   })
 
   it('moi listing co du field bat buoc va dung kieu', () => {

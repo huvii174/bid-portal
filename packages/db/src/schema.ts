@@ -89,7 +89,10 @@ export const searchJobs = pgTable(
     savedSearchId: uuid('saved_search_id'),
     status: text('status').notNull().default('queued').$type<SearchJobStatus>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Mốc để nhặt lại job mồ côi khi worker chết giữa chừng. */
+    startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
+    attempts: integer('attempts').notNull().default(0),
   },
   (t) => [index('search_jobs_keyword_idx').on(t.keyword, t.createdAt)],
 )
@@ -233,6 +236,13 @@ export const listingKeywords = pgTable(
       .references(() => sources.id, { onDelete: 'cascade' }),
     rank: integer('rank').notNull().default(0),
     lastMatchedAt: timestamp('last_matched_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * Đếm theo (listing, keyword) chứ không theo listing: một món khớp cả
+     * "lamp" lẫn "tiffany lamp" có thể rơi khỏi bảng xếp hạng của một từ khóa
+     * trong khi vẫn đang đấu giá bình thường. Chỉ khi TẤT CẢ từ khóa đều mất
+     * dấu nó mới thực sự đáng ngờ.
+     */
+    missingStreak: integer('missing_streak').notNull().default(0),
   },
   (t) => [
     primaryKey({ columns: [t.listingId, t.keyword] }),

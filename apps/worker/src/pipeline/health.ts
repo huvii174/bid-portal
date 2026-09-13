@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { adapterRuns, listingKeywords, notifications, users, type Db } from '@bid/db'
 import type { AdapterRunStatus } from '@bid/db/schema'
 import { sendAlert } from '../notify/alert'
@@ -107,7 +107,4 @@ async function alertAdmins(
   }
 }
 
-export async function recentRuns(db: Db, limit = 50) {
-  return db.select().from(adapterRuns).orderBy(desc(adapterRuns.startedAt)).limit(limit)
-}
 

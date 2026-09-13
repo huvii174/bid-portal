@@ -30,6 +30,21 @@ function isRef(v: unknown): v is ApolloRef {
  * Chuỗi tự do của HiBid, nên parser phải chịu được mọi biến thể và luôn
  * trả kèm nguyên văn cho tầng trên lưu lại.
  */
+/**
+ * "2,000.00" (Anh-My) va "1.500,00" (chau Au) doi nhau vai tro dau phay/cham.
+ * Dau phan cach thap phan la dau NAM SAU CUNG — quy tac nay dung cho ca hai.
+ */
+export function parseAmount(token: string): number | undefined {
+  const lastComma = token.lastIndexOf(',')
+  const lastDot = token.lastIndexOf('.')
+  const normalized =
+    lastComma > lastDot
+      ? token.replace(/\./g, '').replace(',', '.')
+      : token.replace(/,/g, '')
+  const n = Number(normalized)
+  return Number.isFinite(n) ? n : undefined
+}
+
 export function parseEstimate(
   text: unknown,
 ): { low?: number; high?: number; currency?: string; raw: string } | undefined {
@@ -38,9 +53,9 @@ export function parseEstimate(
   if (!raw) return undefined
 
   const currency = raw.match(/\b([A-Z]{3})\b\s*$/)?.[1]
-  const numbers = [...raw.matchAll(/\d[\d,]*(?:\.\d+)?/g)]
-    .map((m) => Number(m[0].replace(/,/g, '')))
-    .filter((n) => Number.isFinite(n))
+  const numbers = [...raw.matchAll(/\d[\d.,]*\d|\d/g)]
+    .map((m) => parseAmount(m[0]))
+    .filter((n): n is number => n !== undefined)
 
   if (numbers.length === 0) return { currency, raw }
   const low = numbers[0]
@@ -62,6 +77,24 @@ function date(v: unknown): Date | undefined {
   if (!s) return undefined
   const d = new Date(s)
   return Number.isNaN(d.getTime()) ? undefined : d
+}
+
+const ALLOWED_IMAGE_HOSTS = new Set(['cdn.hibid.com', 'image.hibid.com'])
+
+/**
+ * Ảnh đến từ dữ liệu crawl về, tức là do bên ngoài kiểm soát. Không chặn host
+ * thì một listing độc hại đủ để bắt trình duyệt của cả đội gọi tới máy chủ
+ * bất kỳ mỗi lần xem kết quả.
+ */
+function safeImageUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  try {
+    const url = new URL(raw)
+    if (url.protocol !== 'https:') return undefined
+    return ALLOWED_IMAGE_HOSTS.has(url.hostname) ? raw : undefined
+  } catch {
+    return undefined
+  }
 }
 
 /** Slug theo đúng cách HiBid dựng URL lot. */
@@ -95,9 +128,11 @@ function livePrice(lotState: ApolloEntity, lot: ApolloEntity): {
   if (isClosed && priceRealized > 0) {
     return { kind: 'sold', amount: priceRealized, rawText: `Sold ${priceRealized}` }
   }
-  if (bidCount > 0) {
-    const amount = highBid > 0 ? highBid : bidAmount
-    return { kind: 'current_bid', amount, rawText: `Current bid ${amount} (${bidCount} bids)` }
+  // Co luot dat gia nhung khong co so tien nao thi KHONG bia ra "gia hien tai 0" —
+  // roi xuong cac kha nang duoi, cung lam khong biet gia con hon bao sai gia.
+  const bidNow = highBid > 0 ? highBid : bidAmount
+  if (bidCount > 0 && bidNow > 0) {
+    return { kind: 'current_bid', amount: bidNow, rawText: `Current bid ${bidNow} (${bidCount} bids)` }
   }
   if (buyNow > 0) {
     return { kind: 'buy_now', amount: buyNow, rawText: `Buy now ${buyNow}` }
@@ -179,7 +214,12 @@ function readApolloState(html: string): Record<string, ApolloEntity> {
 export interface LotRefresh {
   priceKind: PriceKind
   priceAmount?: number
+  priceAmountHigh?: number
   rawPriceText?: string
+  estimateLow?: number
+  estimateHigh?: number
+  rawEstimateText?: string
+  currency?: string
   status: ListingStatus
 }
 
@@ -194,11 +234,21 @@ export function parseHibidLotHtml(html: string, sourceListingId: string): LotRef
 
   const lotState = (lot.lotState as ApolloEntity | undefined) ?? {}
   const price = livePrice(lotState, lot)
+  const estimate = parseEstimate(lot.estimate)
+
+  // Lam moi phai tra ve BUC TRANH DAY DU giong luc parse trang tim kiem, ke ca
+  // estimate. Neu chi tra ve gia song thi mot lot dang hien theo estimate se bi
+  // ha xuong 'unknown' va mat gia — te hon ca truoc khi lam moi.
+  const useEstimateAsPrice = price.kind === 'unknown' && estimate?.low !== undefined
 
   return {
-    priceKind: price.kind,
-    priceAmount: price.amount,
-    rawPriceText: price.rawText,
+    priceKind: useEstimateAsPrice ? 'estimate' : price.kind,
+    priceAmount: useEstimateAsPrice ? estimate?.low : price.amount,
+    priceAmountHigh: useEstimateAsPrice ? estimate?.high : undefined,
+    rawPriceText: useEstimateAsPrice ? estimate?.raw : price.rawText,
+    estimateLow: estimate?.low,
+    estimateHigh: estimate?.high,
+    rawEstimateText: estimate?.raw,
     status: listingStatus(lotState),
   }
 }
@@ -253,7 +303,9 @@ export function parseHibidSearchHtml(html: string): SearchPage {
       url: `https://hibid.com/lot/${id}/${slugify(title)}`,
       title,
       description: str(lot.description),
-      thumbUrl: str(picture?.hdThumbnailLocation) ?? str(picture?.thumbnailLocation),
+      thumbUrl:
+        safeImageUrl(str(picture?.hdThumbnailLocation)) ??
+        safeImageUrl(str(picture?.thumbnailLocation)),
       lotNo: lot.lotNumber !== undefined && lot.lotNumber !== null ? String(lot.lotNumber) : undefined,
 
       currency: auction?.currency ?? estimate?.currency,
@@ -277,5 +329,8 @@ export function parseHibidSearchHtml(html: string): SearchPage {
     })
   }
 
-  return { listings, isLastPage: listings.length < HIBID_PAGE_SIZE }
+  // So sanh voi so ref THO, khong phai mang da loc: chi can mot lot bi bo qua
+  // (thieu id/lead, hoac __ref treo) tren trang day 100 la 99 < 100 -> tuong
+  // nham la trang cuoi va khong bao gio lay trang 2.
+  return { listings, isLastPage: results.length < HIBID_PAGE_SIZE }
 }

@@ -1,5 +1,3 @@
-import { revalidatePath } from 'next/cache'
-import { getDb, settings } from '@bid/db'
 import { requireAdmin } from '../../../lib/auth'
 import { getSetting } from '../../../lib/settings'
 
@@ -30,24 +28,13 @@ const FIELDS = [
   },
 ] as const
 
-async function save(formData: FormData) {
-  'use server'
-  const db = getDb()
-
-  for (const field of FIELDS) {
-    const value = String(formData.get(field.key) ?? '').trim()
-    if (!value) continue
-    await db
-      .insert(settings)
-      .values({ key: field.key, value })
-      .onConflictDoUpdate({ target: settings.key, set: { value } })
-  }
-
-  revalidatePath('/admin/settings')
-}
-
-export default async function AdminSettingsPage() {
+export default async function AdminSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; rejected?: string }>
+}) {
   await requireAdmin()
+  const { saved, rejected } = await searchParams
 
   const current = await Promise.all(
     FIELDS.map(async (f) => [f.key, await getSetting(f.key, f.fallback)] as const),
@@ -58,7 +45,18 @@ export default async function AdminSettingsPage() {
     <>
       <h1 style={{ marginTop: 0 }}>Cài đặt</h1>
 
-      <form action={save} className="card" style={{ maxWidth: 560 }}>
+      {saved && (
+        <p className="badge" style={{ display: 'inline-block' }}>
+          Đã lưu.
+        </p>
+      )}
+      {rejected && (
+        <p className="badge warn" style={{ display: 'inline-block' }}>
+          Giá trị không hợp lệ, bỏ qua: {rejected}
+        </p>
+      )}
+
+      <form action="/api/admin/settings" method="post" className="card" style={{ maxWidth: 560 }}>
         {FIELDS.map((f) => (
           <label key={f.key} style={{ display: 'block', marginBottom: 18 }}>
             <div style={{ marginBottom: 4 }}>{f.label}</div>

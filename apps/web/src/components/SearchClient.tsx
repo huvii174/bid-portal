@@ -37,7 +37,17 @@ export function SearchClient({ timezone, initialKeyword }: { timezone: string; i
     }
   }, [])
 
-  const poll = useCallback(async (jobId: string) => {
+  // Job co the ket thuc ma khong bao giờ hoan tat (worker chet). Khong co tran
+  // nay thi UI quay mai voi nut Tim bi khoa vinh vien.
+  const MAX_POLLS = 80 // ~2 phut o nhip 1.5s
+
+  const poll = useCallback(async (jobId: string, attempt = 0) => {
+    if (attempt >= MAX_POLLS) {
+      setMessage('Tìm kiếm quá lâu không phản hồi. Thử lại, hoặc kiểm tra worker còn chạy không.')
+      setBusy(false)
+      return
+    }
+
     const res = await fetch(`/api/search/${jobId}`)
     if (!res.ok) {
       setMessage('Không đọc được tiến độ tìm kiếm.')
@@ -49,7 +59,7 @@ export function SearchClient({ timezone, initialKeyword }: { timezone: string; i
     setSourcesState(data.sources ?? [])
 
     if (!data.finished) {
-      pollTimer.current = setTimeout(() => void poll(jobId), 1500)
+      pollTimer.current = setTimeout(() => void poll(jobId, attempt + 1), 1500)
       return
     }
 

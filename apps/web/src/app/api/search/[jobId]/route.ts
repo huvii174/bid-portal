@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import {
   adapterRuns,
   getCacheState,
@@ -10,14 +10,25 @@ import {
 } from '@bid/db'
 import { getSession } from '../../../../lib/auth'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function GET(_req: Request, { params }: { params: Promise<{ jobId: string }> }) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   const { jobId } = await params
+  // Chuoi khong phai uuid se lam Postgres nem loi cast -> 500. Chan tu dau.
+  if (!UUID_RE.test(jobId)) {
+    return NextResponse.json({ error: 'jobId khong hop le' }, { status: 400 })
+  }
+
   const db = getDb()
 
-  const [job] = await db.select().from(searchJobs).where(eq(searchJobs.id, jobId)).limit(1)
+  const [job] = await db
+    .select()
+    .from(searchJobs)
+    .where(and(eq(searchJobs.id, jobId), eq(searchJobs.requestedByUserId, session.userId)))
+    .limit(1)
   if (!job) return NextResponse.json({ error: 'khong tim thay job' }, { status: 404 })
 
   // Tien do tung nguon: nguon dang bat nao chua co AdapterRun cho job nay thi

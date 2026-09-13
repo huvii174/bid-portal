@@ -5,11 +5,13 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: bid
-      POSTGRES_PASSWORD: bid
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bid}
       POSTGRES_DB: bid
     ports:
-      # 5433 tren host de khong dung cong voi postgres cai san (5432).
-      - '5433:5432'
+      # Chi bind vao localhost. Bo '127.0.0.1:' la mo DB ra moi interface —
+      # tren may cloud nghia la Postgres phoi thang ra internet.
+      # 5433 de khong dung cong voi postgres cai san tren may (5432).
+      - '127.0.0.1:5433:5432'
     volumes:
       - bid_pgdata:/var/lib/postgresql/data
     healthcheck:

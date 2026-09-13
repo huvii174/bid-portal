@@ -57,4 +57,11 @@ npm run -w @bid/worker purge                      # xoá dữ liệu quá 90 ng�
 1. Điền tên người chịu trách nhiệm khiếu nại vào `docs/OPERATIONS.md`.
 2. Đặt `RESEND_API_KEY` — chưa có thì cảnh báo adapter chỉ ghi log, không ai nhận được.
 3. Đổi `CRAWLER_USER_AGENT` sang email liên hệ thật của đội.
-4. Đổi `AUTH_SECRET` và mật khẩu Postgres khỏi giá trị mặc định.
+4. Đặt `POSTGRES_PASSWORD` thật (mặc định `bid` chỉ dùng cho máy local).
+5. `AUTH_SECRET` phải dài ≥32 ký tự và **không** còn là placeholder — app từ chối khởi động nếu vẫn là giá trị mẫu, vì ai đọc được repo cũng tự ký được token admin.
+
+## Ghi chú bảo mật đáng nhớ
+
+- **Không dùng Server Action cho thao tác cần quyền.** Next dispatch server action từ một bảng toàn cục không gắn với route, nên `requireAdmin()` ở page component và middleware trên `/admin` đều không bảo vệ được nó — một `member` gọi được action từ bất kỳ trang nào. Mọi thao tác quản trị ở đây đi qua API route tự kiểm tra quyền.
+- Session là JWT không trạng thái, hạn 12 giờ. Hạ quyền admin → member chỉ có hiệu lực sau khi token hết hạn.
+- Postgres trong `docker-compose.yml` chỉ bind `127.0.0.1`. Bỏ tiền tố đó là phơi database ra internet.
