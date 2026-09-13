@@ -106,4 +106,3 @@ export async function runSearch(
   return results
 }
 
-export { eq }

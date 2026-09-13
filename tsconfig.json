@@ -13,10 +13,9 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "jsx": "preserve",
-    "baseUrl": ".",
     "paths": {
-      "@bid/db": ["packages/db/src/index.ts"],
-      "@bid/db/schema": ["packages/db/src/schema.ts"]
+      "@bid/db": ["./packages/db/src/index.ts"],
+      "@bid/db/schema": ["./packages/db/src/schema.ts"]
     }
   },
   "include": ["packages/**/*.ts", "apps/**/*.ts", "apps/**/*.tsx"],

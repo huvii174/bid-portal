@@ -17,7 +17,7 @@ const startedAt = Date.now()
 const result = await adapter.search(keyword, page)
 
 console.log(
-  `${result.listings.length} listing(s) trong ${Date.now() - startedAt}ms · pageLength=${result.pageLength}`,
+  `${result.listings.length} listing(s) trong ${Date.now() - startedAt}ms · ${result.isLastPage ? 'trang cuoi' : 'con trang tiep'}`,
 )
 
 for (const l of result.listings.slice(0, 5)) {
