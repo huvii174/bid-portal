@@ -2,15 +2,16 @@
 
 Portal nội bộ gom hàng đồ cổ đang đấu giá từ nhiều sàn về một chỗ, để đội không phải mở từng site tìm tay mỗi ngày.
 
-**v1 chỉ có HiBid.** LiveAuctioneers và Invaluable thuộc v2 — xem `docs/OPERATIONS.md` và kế hoạch trong `.omc/plans/`.
+**Ba nguồn: HiBid, LiveAuctioneers, Invaluable.** Mỗi nguồn có cách lấy dữ liệu và độ bền khác nhau — xem `docs/OPERATIONS.md` trước khi vận hành.
 
 ## Làm được gì
 
-- Gõ một từ khóa → hệ thống crawl HiBid và trả kết quả đã chuẩn hoá.
+- Gõ một từ khóa → hệ thống crawl cả ba sàn và trả kết quả đã chuẩn hoá, gộp về một danh sách.
 - Mỗi món hiện **rõ loại giá** (giá khởi điểm / giá hiện tại / mua ngay / đã bán) kèm **ước tính của nhà đấu giá** bên cạnh — đây là phép so sánh chính, ví dụ *giá khởi điểm 300 USD so với ước tính 600–900 USD*.
-- Lưu món quan tâm vào watchlist; bấm là mở thẳng trang gốc trên HiBid để đấu giá.
+- Lưu món quan tâm vào watchlist; bấm là mở thẳng trang gốc trên sàn tương ứng để đấu giá.
+- Chọn tiền tệ quy đổi để so sánh; **giá gốc luôn giữ nguyên** vì đó là số tiền thực phải trả.
 - Đăng nhập, 2 quyền: `admin` (quản lý nguồn, cài đặt) và `member`.
-- Trang quản trị: kill-switch từng nguồn, lịch sử các lần crawl, trần ngân sách request.
+- Trang quản trị: kill-switch từng nguồn, lịch sử các lần crawl, cảnh báo khi worker ngừng chạy.
 
 ## Chạy thử
 
@@ -32,7 +33,7 @@ npm run dev:worker   # phải chạy, nếu không job tìm kiếm sẽ treo
 apps/web       Next.js — giao diện + API
 apps/worker    crawler, hàng đợi job, bảo trì định kỳ
 packages/db    schema Drizzle + truy vấn dùng chung
-docs/          SPIKE-hibid.md (cách HiBid hoạt động), OPERATIONS.md (vận hành)
+docs/          SPIKE-hibid.md (cách HiBid hoạt động), OPERATIONS.md (vận hành, ba nguồn)
 ```
 
 ## Nguyên tắc thiết kế đáng nhớ
@@ -40,7 +41,7 @@ docs/          SPIKE-hibid.md (cách HiBid hoạt động), OPERATIONS.md (vận
 - **Không bao giờ crawl trong request của người dùng.** Tìm kiếm đọc từ kho đã crawl; từ khóa chưa có cache thì tạo job và UI poll tiến độ.
 - **Giá không phải một con số.** Luôn đi cùng loại giá và tiền tệ. Không bao giờ so sánh trực tiếp hai loại giá khác nhau.
 - **Thất bại phải ồn ào.** Một nguồn hỏng hiện thành trạng thái riêng của nguồn đó, không bao giờ biến thành danh sách ngắn im lặng.
-- **Ngân sách request là phanh cứng**, không phải cảnh báo — chạm trần là worker dừng crawl.
+- **Giãn cách theo nguồn là thứ giữ nhịp** (2s/5s/10s, dùng chung cả tiến trình). Không có trần theo ngày: khi mọi adapter chạy bằng `fetch` thường thì request không tốn tiền, nên trần chỉ gây phiền.
 
 ## Lệnh hữu ích
 

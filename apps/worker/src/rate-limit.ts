@@ -1,22 +1,12 @@
-import { and, gte, sql } from 'drizzle-orm'
-import { adapterRuns, settings, type Db } from '@bid/db'
-
-export class PageBudgetExceededError extends Error {
-  constructor(used: number, budget: number) {
-    super(`ngan sach page-load hom nay da het: ${used}/${budget}`)
-  }
-}
+import { sql } from 'drizzle-orm'
+import { settings, type Db } from '@bid/db'
 
 const DEFAULTS = {
-  daily_page_budget: 300,
   pages_per_search: 2,
   keyword_cache_ttl_hours: 6,
 } as const
 
-export async function getNumericSetting(
-  db: Db,
-  key: keyof typeof DEFAULTS,
-): Promise<number> {
+export async function getNumericSetting(db: Db, key: keyof typeof DEFAULTS): Promise<number> {
   const [row] = await db
     .select({ value: settings.value })
     .from(settings)
@@ -26,30 +16,13 @@ export async function getNumericSetting(
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULTS[key]
 }
 
-function startOfUtcDay(): Date {
-  const now = new Date()
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-}
-
-export async function pagesFetchedToday(db: Db): Promise<number> {
-  const [row] = await db
-    .select({ total: sql<number>`coalesce(sum(${adapterRuns.pagesFetched}), 0)::int` })
-    .from(adapterRuns)
-    .where(and(gte(adapterRuns.startedAt, startOfUtcDay())))
-  return row?.total ?? 0
-}
-
 /**
- * Chặn cứng tổng số page-load mỗi ngày. Đây là cái phanh thật, không phải
- * "theo dõi usage" — vượt ngưỡng là worker dừng crawl chứ không chỉ cảnh báo.
+ * Giãn cách tối thiểu giữa 2 request tới cùng một nguồn, có nhiễu ngẫu nhiên.
+ *
+ * Đây là cơ chế duy nhất giới hạn nhịp gọi tới nguồn, nên đừng tạo pacer mới
+ * cho mỗi job — một thể hiện dùng chung cho cả tiến trình mới giữ được giãn
+ * cách giữa các lần crawl liên tiếp.
  */
-export async function assertPageBudget(db: Db, wantPages: number): Promise<void> {
-  const budget = await getNumericSetting(db, 'daily_page_budget')
-  const used = await pagesFetchedToday(db)
-  if (used + wantPages > budget) throw new PageBudgetExceededError(used, budget)
-}
-
-/** Giãn cách tối thiểu giữa 2 request tới cùng một nguồn, có nhiễu ngẫu nhiên. */
 export function createPacer(minIntervalMs: number, jitterRatio = 0.5) {
   let lastAt = 0
   return async function pace(): Promise<void> {

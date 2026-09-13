@@ -8,7 +8,7 @@ import { getSession } from '../../../../lib/auth'
  * tra ben trong chinh action va khong the dua vao middleware. Route thuong co
  * cung mo hinh bao ve voi moi endpoint khac trong app, va kiem chung duoc.
  */
-const NUMERIC_KEYS = ['daily_page_budget', 'pages_per_search', 'keyword_cache_ttl_hours'] as const
+const NUMERIC_KEYS = ['pages_per_search', 'keyword_cache_ttl_hours'] as const
 
 function isValidTimezone(value: string): boolean {
   try {

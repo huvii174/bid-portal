@@ -54,7 +54,7 @@ export interface SearchPage {
   isLastPage: boolean
   /**
    * Số request HTTP thực sự đã gửi (có thể >1 nếu adapter thử lại).
-   * Ngân sách phải tính theo con số này, không phải số lần gọi search().
+   * Ghi vào adapter_runs.pages_fetched để biết mình đang gọi nguồn bao nhiêu.
    */
   httpRequests: number
 }

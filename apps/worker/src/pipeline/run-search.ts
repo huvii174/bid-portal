@@ -4,7 +4,7 @@ import { createHibidAdapter } from '../adapters/hibid/index'
 import { createLiveAuctioneersAdapter } from '../adapters/liveauctioneers/index'
 import { createInvaluableAdapter } from '../adapters/invaluable/index'
 import type { Adapter, RawListing } from '../adapters/types'
-import { assertPageBudget, getNumericSetting, PageBudgetExceededError } from '../rate-limit'
+import { getNumericSetting } from '../rate-limit'
 import { finishRun, startRun } from './health'
 import { markMissing, upsertListings } from './upsert'
 import type { AdapterRunStatus } from '@bid/db/schema'
@@ -90,8 +90,6 @@ export async function runSearch(
     let reachedEnd = false
 
     try {
-      await assertPageBudget(db, pagesPerSearch)
-
       for (let page = 1; page <= pagesPerSearch; page++) {
         const result = await adapter.search(keyword, page)
         pagesFetched += result.httpRequests
@@ -102,7 +100,7 @@ export async function runSearch(
         }
       }
     } catch (err) {
-      status = err instanceof PageBudgetExceededError ? 'blocked' : 'error'
+      status = 'error'
       errorText = (err as Error).message
     }
 

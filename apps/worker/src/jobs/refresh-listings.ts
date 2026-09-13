@@ -1,7 +1,7 @@
 import { and, eq, gte, inArray, isNotNull, lt, or } from 'drizzle-orm'
 import { listingKeywords, listings, sources, watchlistItems, type Db } from '@bid/db'
 import { parseHibidLotHtml } from '../adapters/hibid/parse'
-import { createPacer, assertPageBudget, PageBudgetExceededError } from '../rate-limit'
+import { createPacer } from '../rate-limit'
 import { finishRun, startRun } from '../pipeline/health'
 
 const USER_AGENT =
@@ -57,15 +57,6 @@ export async function refreshWatchedListings(db: Db, maxItems = 25): Promise<num
 
   if (rows.length === 0) return 0
 
-  try {
-    await assertPageBudget(db, rows.length)
-  } catch (err) {
-    if (err instanceof PageBudgetExceededError) {
-      console.warn(`[refresh] bo qua: ${err.message}`)
-      return 0
-    }
-    throw err
-  }
 
   const pace = createPacer(hibid.minRequestIntervalMs)
   // Luot fetch cua job nay cung phai tinh vao ngan sach, khong thi "phanh cung"

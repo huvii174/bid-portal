@@ -9,12 +9,6 @@ const FIELDS = [
     fallback: 'Asia/Ho_Chi_Minh',
   },
   {
-    key: 'daily_page_budget',
-    label: 'Trần lượt tải trang mỗi ngày',
-    hint: 'Chạm trần thì worker dừng crawl cho tới hết ngày UTC.',
-    fallback: '300',
-  },
-  {
     key: 'pages_per_search',
     label: 'Số trang lấy mỗi nguồn cho một từ khóa',
     hint: 'HiBid trả 100 món mỗi trang, nên 2 trang là tối đa 200 món.',

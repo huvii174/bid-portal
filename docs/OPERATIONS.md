@@ -55,7 +55,6 @@ Nguồn đã tắt vẫn trả kết quả đã cache cho người dùng; job m�
 | `ổn` | Bình thường | — |
 | `0 kết quả (nghi hỏng)` | Từ khóa này **trước đây có** kết quả, giờ về 0 | **Ưu tiên cao.** Gần như chắc chắn adapter hỏng chứ không phải hết hàng. Chạy `npm run -w @bid/worker search -- "<từ khóa>"` để xem adapter còn parse được không |
 | `lỗi` | Adapter ném lỗi | Xem cột Lỗi. `khong tim thay <script id="hibid-state">` = HiBid đã bỏ TransferState → phải viết lại adapter |
-| `chạm trần ngân sách` | Đã dùng hết `daily_page_budget` | Tăng trần ở `/admin/settings`, hoặc giảm số saved search |
 
 Admin cũng nhận email cho mọi trạng thái khác `ổn` (cần `RESEND_API_KEY`; chưa có thì chỉ ghi log — **nghĩa là trên production bắt buộc phải cấu hình**).
 
@@ -65,15 +64,17 @@ Chế độ hỏng nguy hiểm nhất **không phải** hệ thống sập, mà 
 
 Mỗi tháng, với 3 từ khóa đội hay dùng:
 
-1. Tìm trực tiếp trên hibid.com, đếm số kết quả.
-2. Tìm cùng từ khóa trên portal, đếm số kết quả.
-3. Lệch quá ~10% → điều tra adapter.
+1. Tìm trực tiếp trên từng sàn (hibid.com, liveauctioneers.com, invaluable.com), đếm số kết quả.
+2. Tìm cùng từ khóa trên portal, đếm số kết quả **theo từng nguồn** (badge trên trang tìm kiếm có ghi).
+3. Lệch quá ~10% ở nguồn nào → điều tra adapter của nguồn đó.
+
+Lưu ý: nếu nguồn bị gắn nhãn "còn nữa, chưa lấy hết" thì lệch là bình thường — đó là `pages_per_search`, không phải adapter hỏng.
 
 Ghi lại kết quả vào đây:
 
-| Ngày | Từ khóa | HiBid | Portal | Ghi chú |
-|---|---|---|---|---|
-| | | | | |
+| Ngày | Từ khóa | Nguồn | Trên sàn | Trên portal | Ghi chú |
+|---|---|---|---|---|---|
+| | | | | | |
 
 ## Ba nguồn, ba tính chất khác hẳn nhau
 
@@ -93,6 +94,20 @@ Ghi lại kết quả vào đây:
 
 **Số lot mỗi trang chênh nhau nhiều** (100 / 40 / 24), nên `pages_per_search` cho độ phủ rất khác nhau giữa các nguồn: 2 trang = 200 món ở HiBid nhưng chỉ 48 ở LiveAuctioneers. Nếu thấy LiveAuctioneers hay bị gắn "còn nữa, chưa lấy hết", đó là lý do.
 
+## Không còn trần theo ngày — cái gì đang giữ nhịp?
+
+Trần `daily_page_budget` đã được bỏ. Nó ra đời khi kế hoạch còn giả định phải dùng proxy trả tiền theo GB; sau khi cả ba adapter chạy bằng `fetch` thường thì mỗi request **không tốn đồng nào**, nên trần đó chỉ còn là thứ gây phiền.
+
+Thứ thật sự giới hạn việc gọi nguồn là **giãn cách theo từng nguồn** (`sources.min_request_interval_ms`): HiBid 2s, LiveAuctioneers 5s, Invaluable 10s, cộng nhiễu ngẫu nhiên ±50%. Đây là trần cứng về **nhịp**, và nó áp cho cả tiến trình chứ không phải từng job.
+
+Muốn siết lại thì sửa thẳng trong DB:
+
+```sql
+update sources set min_request_interval_ms = 15000 where id = 'invaluable';
+```
+
+Vẫn theo dõi khối lượng được: cột **Trang** trong bảng "Lần chạy gần đây" ở `/admin/sources` ghi số request thật mỗi lần chạy. Nếu thấy con số tăng bất thường, đó là dấu hiệu có vòng lặp hỏng — hãy tắt nguồn và xem lại.
+
 ## Quy đổi tiền tệ
 
 Tỷ giá lấy từ `open.er-api.com` (công khai, không cần key, 166 loại tiền **kể cả VND** — ECB/frankfurter không có VND). Job bảo trì làm mới mỗi 6 giờ; chạy tay bằng `npm run -w @bid/worker fx`.
@@ -106,12 +121,11 @@ Mã tiền tệ trong dữ liệu thật có rác — HiBid trả về cả `CDN
 
 ## Giới hạn đã biết (đừng báo nhầm thành bug)
 
-- **~10% lot thiếu tiền tệ và giờ kết thúc.** Trang tìm kiếm của HiBid không kèm đủ dữ liệu Auction cho mọi lot. Khắc phục triệt để cần fetch từng lot riêng, tức nổ ngân sách request. Xem `docs/SPIKE-hibid.md`.
+- **~10% lot thiếu tiền tệ và giờ kết thúc.** Trang tìm kiếm của HiBid không kèm đủ dữ liệu Auction cho mọi lot. Khắc phục triệt để cần fetch từng lot riêng, tức nhân số request lên hàng chục lần. Xem `docs/SPIKE-hibid.md`.
 - **Chưa gộp trùng giữa các sàn.** LiveAuctioneers và Invaluable cùng bán catalog của nhiều nhà đấu giá giống nhau, nên một món có thể hiện 2 lần. Đã hoãn có chủ ý; làm khi thấy phiền thật.
 - **Chưa xếp hạng chéo nguồn.** Thứ tự hiện tại là tất định (hạng trong nguồn → tên nguồn → id) nhưng không phải "liên quan nhất trước". Hoãn có chủ ý.
 - **Chưa có saved search và email digest.** Thuộc v1.5, làm sau khi đội dùng thật 2 tuần.
 - **Đăng nhập chưa giới hạn số lần thử.** Thời gian phản hồi đã được làm phẳng nên không lộ email nào là tài khoản thật, nhưng không có khoá tạm sau nhiều lần sai. Mật khẩu yếu vẫn đoán được qua nhiều ngày — đặt mật khẩu mạnh cho mọi tài khoản, và thêm giới hạn trước khi hệ thống chứa thứ gì đáng mất.
-- **Hai request bị bỏ khỏi ngân sách khi cả lần gọi đầu lẫn lần thử lại đều lỗi.** Trường hợp này ghi `status=error` và gửi cảnh báo, nên nó tự lộ diện chứ không âm thầm — khác hẳn các lỗ im lặng đã bịt.
 
 ## Chi phí thật, dài hạn
 

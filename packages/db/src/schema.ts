@@ -42,6 +42,7 @@ export type ListingStatus = (typeof LISTING_STATUSES)[number]
 export const ADAPTER_RUN_STATUSES = [
   'ok',
   'error',
+  /** Không còn được sinh ra từ khi bỏ trần ngày; giữ để đọc bản ghi cũ. */
   'blocked',
   'zero_results',
 ] as const
@@ -75,7 +76,6 @@ export const sources = pgTable('sources', {
   name: text('name').notNull(),
   baseUrl: text('base_url').notNull(),
   enabled: boolean('enabled').notNull().default(true),
-  robotsNote: text('robots_note'),
   /** Giãn cách tối thiểu giữa 2 request tới nguồn này. */
   minRequestIntervalMs: integer('min_request_interval_ms').notNull().default(2000),
 })
