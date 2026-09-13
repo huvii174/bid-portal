@@ -26,3 +26,7 @@ coverage/
 .omc/research/
 .omc/notepad.md
 .omc/project-memory.json
+
+# IDE
+.idea/
+.vscode/
