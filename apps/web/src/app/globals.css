@@ -1,0 +1,190 @@
+:root {
+  color-scheme: light dark;
+
+  --bg: #faf9f7;
+  --surface: #ffffff;
+  --surface-2: #f3f1ed;
+  --border: #e2ded7;
+  --text: #1c1a17;
+  --muted: #6b6559;
+  --accent: #8a5a2b;
+  --accent-soft: #f0e6d9;
+  --danger: #a33a2a;
+  --ok: #3f6b45;
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16150f;
+    --surface: #1e1c16;
+    --surface-2: #26231b;
+    --border: #37332a;
+    --text: #ece7dd;
+    --muted: #a39c8d;
+    --accent: #d0a066;
+    --accent-soft: #2e2619;
+    --danger: #e08072;
+    --ok: #8fc096;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+header.topbar {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+header.topbar .wrap {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-block: 12px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  color: var(--text);
+}
+
+nav.links {
+  display: flex;
+  gap: 14px;
+  margin-left: auto;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+nav.links a {
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+nav.links a:hover,
+nav.links a.active {
+  color: var(--text);
+}
+
+button,
+.btn {
+  font: inherit;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+button:hover,
+.btn:hover {
+  border-color: var(--accent);
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='search'],
+input[type='number'],
+select,
+textarea {
+  font: inherit;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.badge.source {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.badge.warn {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

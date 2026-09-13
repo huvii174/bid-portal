@@ -1,4 +1,4 @@
-import { getDb, getPool, sources, settings } from '../src/index.js'
+import { getDb, getPool, sources, settings } from '../src/index'
 
 const SOURCES = [
   {

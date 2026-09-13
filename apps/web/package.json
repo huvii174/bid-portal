@@ -1,0 +1,23 @@
+{
+  "name": "@bid/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3100",
+    "build": "next build",
+    "start": "next start --port 3100"
+  },
+  "dependencies": {
+    "@bid/db": "*",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.2",
+    "jose": "^6.2.12",
+    "next": "^16.3.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.1"
+  }
+}

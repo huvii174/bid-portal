@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import bcrypt from 'bcryptjs'
-import { getDb, getPool, users } from '../src/index.js'
+import { getDb, getPool, users } from '../src/index'
 
 /**
  * Tao tai khoan admin dau tien.
