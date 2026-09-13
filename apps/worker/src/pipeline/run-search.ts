@@ -64,7 +64,7 @@ export async function runSearch(
 
       for (let page = 1; page <= pagesPerSearch; page++) {
         const result = await adapter.search(keyword, page)
-        pagesFetched++
+        pagesFetched += result.httpRequests
         collected.push(...result.listings)
         if (result.isLastPage) break
       }

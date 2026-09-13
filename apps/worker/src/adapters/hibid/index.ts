@@ -62,8 +62,10 @@ export function createHibidAdapter(minRequestIntervalMs = 2000): Adapter {
         // HiBid thinh thoang tra ve trang khong co lotSearch mot cach ngau
         // nhien. Thu lai mot lan de mot truc trac thoang qua khong bien thanh
         // "0 ket qua"; van that bai that neu no lap lai.
-        if (err instanceof HibidParseError) return fetchOnce()
-        throw err
+        if (!(err instanceof HibidParseError)) throw err
+        const retried = await fetchOnce()
+        // Lan thu lai cung ton mot request — phai vao ngan sach.
+        return { ...retried, httpRequests: retried.httpRequests + 1 }
       }
     },
   }

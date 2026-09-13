@@ -13,9 +13,14 @@ import { signSession, sessionCookie } from '../../../../lib/session'
  * ("//evil.com", "/\evil.com"). Chi co origin thuc sau khi parse moi dang tin.
  */
 function safeNext(raw: string, base: string): string {
+  if (!raw.trim()) return '/search'
   try {
     const target = new URL(raw, base)
-    return target.origin === new URL(base).origin ? target.pathname + target.search : '/search'
+    if (target.origin !== new URL(base).origin) return '/search'
+    // Chuoi rong giai ra chinh route nay (chi nhan POST), nen mot redirect GET
+    // vao day se hong. Moi duong dan /api/ deu khong phai cho de dap xuong.
+    if (target.pathname.startsWith('/api/')) return '/search'
+    return target.pathname + target.search
   } catch {
     return '/search'
   }

@@ -281,7 +281,7 @@ export function parseHibidSearchHtml(html: string, page = 1): SearchPage {
         'trang 1 khong co lotSearch — HiBid tra ve trang bat thuong, KHONG phai het hang',
       )
     }
-    return { listings: [], isLastPage: true }
+    return { listings: [], isLastPage: true, httpRequests: 1 }
   }
 
   const results = Array.isArray(paged.results) ? paged.results : []
@@ -342,5 +342,5 @@ export function parseHibidSearchHtml(html: string, page = 1): SearchPage {
   // So sanh voi so ref THO, khong phai mang da loc: chi can mot lot bi bo qua
   // (thieu id/lead, hoac __ref treo) tren trang day 100 la 99 < 100 -> tuong
   // nham la trang cuoi va khong bao gio lay trang 2.
-  return { listings, isLastPage: results.length < HIBID_PAGE_SIZE }
+  return { listings, isLastPage: results.length < HIBID_PAGE_SIZE, httpRequests: 1 }
 }

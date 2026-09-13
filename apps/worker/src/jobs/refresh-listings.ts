@@ -86,10 +86,19 @@ export async function refreshWatchedListings(db: Db, maxItems = 25): Promise<num
         signal: AbortSignal.timeout(30_000),
       })
       fetched++
-      if (!res.ok) continue
+      // Phai tinh la that bai: neu HiBid bat dau tra 403/503 cho crawler —
+      // cach refresh chet trong thuc te — thi moi lot deu roi vao nhanh nay.
+      // Bo qua im lang se lam gia trong watchlist dong bang ma khong ai hay.
+      if (!res.ok) {
+        failed++
+        continue
+      }
 
       const lot = parseHibidLotHtml(await res.text(), row.sourceListingId)
-      if (!lot) continue
+      if (!lot) {
+        failed++
+        continue
+      }
 
       // `?? null` cho MOI truong: drizzle bo qua key co gia tri undefined, nen
       // thieu no la gia tri cu con sot lai canh gia moi — vi du rawPriceText

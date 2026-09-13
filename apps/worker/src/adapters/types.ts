@@ -53,6 +53,11 @@ export interface SearchPage {
    * Orchestrator chỉ cần biết có nên gọi trang tiếp theo hay không.
    */
   isLastPage: boolean
+  /**
+   * Số request HTTP thực sự đã gửi (có thể >1 nếu adapter thử lại).
+   * Ngân sách phải tính theo con số này, không phải số lần gọi search().
+   */
+  httpRequests: number
 }
 
 export interface Adapter {
