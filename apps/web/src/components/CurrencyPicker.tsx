@@ -12,7 +12,14 @@ export function CurrencyPicker({ value }: { value: string | null }) {
       <select
         name="currency"
         defaultValue={value ?? ''}
-        onChange={(e) => e.currentTarget.form?.requestSubmit()}
+        onChange={(e) => {
+          // Chi ghi khi CHINH NGUOI DUNG doi. Trinh duyet tu khoi phuc gia tri
+          // form sau khi tai lai trang, va React re-render cung sinh `change` —
+          // neu nhan het thi mot lua chon cu se am tham ghi de lua chon that.
+          if (!e.nativeEvent.isTrusted) return
+          if (e.currentTarget.value === (value ?? '')) return
+          e.currentTarget.form?.requestSubmit()
+        }}
         aria-label="Tiền tệ quy đổi"
         style={{ width: 'auto', padding: '6px 8px', fontSize: 13 }}
       >

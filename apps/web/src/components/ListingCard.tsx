@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { convertCurrency } from '@bid/db/currency'
 
 export interface ResultRow {
@@ -79,6 +79,17 @@ function estimateText(row: ResultRow): string | null {
   return range(row.estimateLow, row.estimateHigh, row.currency)
 }
 
+/**
+ * Dem nguoc phu thuoc Date.now() nen may chu va trinh duyet tinh ra hai gia tri
+ * khac nhau neu vuot qua moc phut — dung kieu lech hydration ma React canh bao.
+ * Vi vay chi tinh SAU khi mount; may chu khong render gi cho o nay.
+ */
+function useCountdown(endsAtUtc: string | null): string | null {
+  const [text, setText] = useState<string | null>(null)
+  useEffect(() => setText(countdown(endsAtUtc)), [endsAtUtc])
+  return text
+}
+
 function countdown(endsAtUtc: string | null): string | null {
   if (!endsAtUtc) return null
   const ms = new Date(endsAtUtc).getTime() - Date.now()
@@ -119,7 +130,7 @@ export function ListingCard({
   const estimate = estimateText(row)
   // Chi hien estimate rieng khi no KHONG phai gia chinh dang hien.
   const showEstimate = estimate && row.priceKind !== 'estimate'
-  const remaining = countdown(row.endsAtUtc)
+  const remaining = useCountdown(row.endsAtUtc)
   const endedBadge = STATUS_LABEL[row.status]
 
   // Quy doi chi de SO SANH. Gia goc o tren van la so tien thuc phai tra, nen
