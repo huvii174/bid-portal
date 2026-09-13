@@ -10,7 +10,7 @@ const keyword = process.argv[2]
 const page = Number(process.argv[3] ?? '1')
 
 if (!keyword) {
-  console.error('Usage: npm run -w @bid/worker search -- "<tu khoa>" [trang]')
+  console.error('Usage: npm run -w @bid/worker search -- "<keyword>" [page]')
   process.exit(1)
 }
 
@@ -25,7 +25,7 @@ const startedAt = Date.now()
 const result = await adapter.search(keyword, page)
 
 console.log(
-  `${result.listings.length} listing(s) trong ${Date.now() - startedAt}ms · ${result.isLastPage ? 'trang cuoi' : 'con trang tiep'}`,
+  `${result.listings.length} listing(s) in ${Date.now() - startedAt}ms · ${result.isLastPage ? 'last page' : 'more pages available'}`,
 )
 
 for (const l of result.listings.slice(0, 5)) {

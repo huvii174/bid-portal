@@ -31,7 +31,7 @@ async function main() {
     .returning({ id: users.id, email: users.email })
 
   console.log(`admin ready: ${row?.email}`)
-  if (!process.argv[3]) console.log(`password (luu lai ngay, chi hien mot lan): ${password}`)
+  if (!process.argv[3]) console.log(`password (save this now, shown only once): ${password}`)
 
   await getPool().end()
 }

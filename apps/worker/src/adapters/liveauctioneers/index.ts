@@ -43,13 +43,13 @@ export function createLiveAuctioneersAdapter(minRequestIntervalMs = 5000): Adapt
           })
         } catch (err) {
           throw new LiveAuctioneersFetchError(
-            `khong goi duoc LiveAuctioneers: ${(err as Error).message}`,
+            `could not reach LiveAuctioneers: ${(err as Error).message}`,
           )
         }
 
         if (!res.ok) {
           throw new LiveAuctioneersFetchError(
-            `LiveAuctioneers tra ve HTTP ${res.status}`,
+            `LiveAuctioneers returned HTTP ${res.status}`,
             res.status,
           )
         }

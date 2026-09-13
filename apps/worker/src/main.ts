@@ -51,12 +51,12 @@ async function requeueStuckJobs(db: Db): Promise<void> {
   `)
 
   if (result.rows.length > 0) {
-    console.log(`[nhat lai] ${result.rows.length} job mo coi`)
+    console.log(`[requeue] ${result.rows.length} orphaned job(s)`)
   }
 }
 
 async function processJob(db: Db, job: { id: string; keyword: string }): Promise<void> {
-  console.log(`[job ${job.id}] crawl "${job.keyword}"`)
+  console.log(`[job ${job.id}] crawling "${job.keyword}"`)
 
   const results = await runSearch(db, job.keyword, job.id)
   const active = results.filter((r) => r.status !== 'disabled')
@@ -87,10 +87,10 @@ function startMaintenance(db: Db): void {
       const purged = await purgeOldListings(db)
       const fx = await refreshFxRates(db)
       console.log(
-        `[bao tri] dong ${closed} · lam moi ${refreshed} · xoa ${purged} qua han · ty gia ${fx}`,
+        `[maintenance] closed ${closed} · refreshed ${refreshed} · purged ${purged} · fx rates ${fx}`,
       )
     } catch (err) {
-      console.error('[bao tri] loi:', (err as Error).message)
+      console.error('[maintenance] error:', (err as Error).message)
     }
   }
 
@@ -101,7 +101,7 @@ function startMaintenance(db: Db): void {
 async function loop(): Promise<void> {
   const db = getDb()
   startMaintenance(db)
-  console.log(`worker san sang · poll moi ${POLL_INTERVAL_MS}ms · bao tri moi 6h`)
+  console.log(`worker ready · polling every ${POLL_INTERVAL_MS}ms · maintenance every 6h`)
 
   for (;;) {
     try {
@@ -115,14 +115,14 @@ async function loop(): Promise<void> {
       try {
         await processJob(db, job)
       } catch (err) {
-        console.error(`[job ${job.id}] that bai:`, (err as Error).message)
+        console.error(`[job ${job.id}] failed:`, (err as Error).message)
         await db
           .update(searchJobs)
           .set({ status: 'failed', finishedAt: new Date() })
           .where(eq(searchJobs.id, job.id))
       }
     } catch (err) {
-      console.error('worker loop loi:', (err as Error).message)
+      console.error('worker loop error:', (err as Error).message)
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
     }
   }
@@ -130,7 +130,7 @@ async function loop(): Promise<void> {
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
-    console.log(`\nnhan ${signal}, dong ket noi...`)
+    console.log(`\nreceived ${signal}, closing connections...`)
     void getPool().end().then(() => process.exit(0))
   })
 }

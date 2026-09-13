@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { verifySession } from './lib/session'
+import { DEFAULT_LOCALE, getDictionary } from './i18n'
 import { sessionCookie } from './lib/session'
 
 const PUBLIC_PATHS = ['/login', '/api/auth/login']
@@ -28,7 +29,8 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 })
     }
-    return new NextResponse('403 — chỉ admin truy cập được trang này', {
+    // Middleware chay truoc khi doc duoc tuy chon cua user, nen dung mac dinh.
+    return new NextResponse(getDictionary(DEFAULT_LOCALE).errors.adminOnly, {
       status: 403,
       headers: { 'content-type': 'text/plain; charset=utf-8' },
     })

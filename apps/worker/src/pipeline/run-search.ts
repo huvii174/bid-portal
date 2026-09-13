@@ -77,7 +77,7 @@ export async function runSearch(
         itemsFound: 0,
         pagesFetched: 0,
         truncated: false,
-        errorText: 'chua co adapter cho nguon nay',
+        errorText: 'no adapter implemented for this source',
       })
       continue
     }
@@ -115,7 +115,7 @@ export async function runSearch(
     // vong lap giu san dung bien can thiet.
     const truncated = status === 'ok' && !reachedEnd
     if (truncated) {
-      errorText = `cat bot o ${pagesPerSearch} trang — nguon van con hang`
+      errorText = `truncated at ${pagesPerSearch} pages — the source still has more`
     }
 
     // finishRun phai chay TRUOC khi quyet dinh cache: chinh no moi nang mot lan

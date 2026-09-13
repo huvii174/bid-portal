@@ -50,6 +50,13 @@
       "when": 1789276875951,
       "tag": "0006_red_owl",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789284304060,
+      "tag": "0007_tricky_bucky",
+      "breakpoints": true
     }
   ]
 }

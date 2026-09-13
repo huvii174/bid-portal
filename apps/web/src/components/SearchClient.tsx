@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ListingCard, type FxProps, type ResultRow } from './ListingCard'
+import { getDictionary, type Locale } from '../i18n'
 
 interface SourceProgress {
   sourceId: string
@@ -13,24 +14,19 @@ interface SourceProgress {
   errorText: string | null
 }
 
-const SOURCE_LABEL: Record<string, string> = {
-  pending: 'đang chờ',
-  running: 'đang lấy dữ liệu',
-  ok: 'xong',
-  zero_results: 'không có kết quả (nghi adapter hỏng)',
-  error: 'lỗi',
-  blocked: 'đã chạm trần ngân sách',
-}
 
 export function SearchClient({
   timezone,
   initialKeyword,
   fx,
+  locale,
 }: {
   timezone: string
   initialKeyword: string
   fx: FxProps
+  locale: Locale
 }) {
+  const t = getDictionary(locale)
   const [keyword, setKeyword] = useState(initialKeyword)
   const [busy, setBusy] = useState(false)
   const [results, setResults] = useState<ResultRow[]>([])
@@ -52,14 +48,14 @@ export function SearchClient({
 
   const poll = useCallback(async (jobId: string, attempt = 0) => {
     if (attempt >= MAX_POLLS) {
-      setMessage('Tìm kiếm quá lâu không phản hồi. Thử lại, hoặc kiểm tra worker còn chạy không.')
+      setMessage(t.search.pollTimeout)
       setBusy(false)
       return
     }
 
     const res = await fetch(`/api/search/${jobId}`)
     if (!res.ok) {
-      setMessage('Không đọc được tiến độ tìm kiếm.')
+      setMessage(t.search.progressFailed)
       setBusy(false)
       return
     }
@@ -76,10 +72,10 @@ export function SearchClient({
     setLastCheckedAt(data.lastCheckedAt ?? null)
     setBusy(false)
 
-    if (data.status === 'failed') setMessage('Tất cả nguồn đều lỗi — xem chi tiết bên dưới.')
-    else if (data.status === 'partial') setMessage('Một số nguồn lỗi — danh sách dưới đây chưa đầy đủ.')
+    if (data.status === 'failed') setMessage(t.search.allSourcesFailed)
+    else if (data.status === 'partial') setMessage(t.search.someSourcesFailed)
     else setMessage(null)
-  }, [])
+  }, [t])
 
   const run = useCallback(
     async (raw: string) => {
@@ -100,7 +96,7 @@ export function SearchClient({
       })
 
       if (!res.ok) {
-        setMessage('Tìm kiếm thất bại.')
+        setMessage(t.search.requestFailed)
         setBusy(false)
         return
       }
@@ -112,7 +108,7 @@ export function SearchClient({
         // Cache sinh ra tu mot lan crawl bi cat van phai noi ro, neu khong thi
         // suot 6h sau do danh sach ngan trong nhu danh sach day.
         if (data.truncatedSources?.length > 0) {
-          setMessage('Lần lấy dữ liệu gần nhất chưa lấy hết — còn hàng chưa về.')
+          setMessage(t.search.truncatedCached)
         }
         setBusy(false)
         return
@@ -120,7 +116,7 @@ export function SearchClient({
 
       void poll(data.jobId)
     },
-    [busy, poll],
+    [busy, poll, t],
   )
 
   // /search?q=... phai tu chay — link tim kiem can chia se duoc.
@@ -146,11 +142,11 @@ export function SearchClient({
           type="search"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          placeholder="Ví dụ: tiffany lamp, rococo table, bronze statue…"
-          aria-label="Từ khóa tìm kiếm"
+          placeholder={t.search.placeholder}
+          aria-label={t.search.inputLabel}
         />
         <button className="primary" type="submit" disabled={busy}>
-          {busy ? 'Đang tìm…' : 'Tìm'}
+          {busy ? t.search.searching : t.search.submit}
         </button>
       </form>
 
@@ -161,9 +157,9 @@ export function SearchClient({
               key={s.sourceId}
               className={`badge${s.status === 'error' || s.status === 'zero_results' || s.truncated ? ' warn' : ''}`}
             >
-              {s.name}: {SOURCE_LABEL[s.status] ?? s.status}
-              {s.status === 'ok' && ` · ${s.itemsFound} món`}
-              {s.truncated && ' · còn nữa, chưa lấy hết'}
+              {s.name}: {t.sourceStatus[s.status as keyof typeof t.sourceStatus] ?? s.status}
+              {s.status === 'ok' && ` · ${t.search.itemCount(s.itemsFound)}`}
+              {s.truncated && ` · ${t.search.stillMore}`}
             </span>
           ))}
         </div>
@@ -177,8 +173,9 @@ export function SearchClient({
 
       {lastCheckedAt && (
         <p className="muted" style={{ marginTop: 0 }}>
-          Kiểm tra lần cuối:{' '}
-          {new Date(lastCheckedAt).toLocaleString('vi-VN', { timeZone: timezone })}
+          {t.search.lastChecked(
+            new Date(lastCheckedAt).toLocaleString(t.formatLocale, { timeZone: timezone }),
+          )}
         </p>
       )}
 
@@ -191,13 +188,13 @@ export function SearchClient({
           }}
         >
           {results.map((r) => (
-            <ListingCard key={r.id} row={r} timezone={timezone} fx={fx} />
+            <ListingCard key={r.id} row={r} timezone={timezone} fx={fx} locale={locale} />
           ))}
         </div>
       )}
 
       {searched && !busy && results.length === 0 && (
-        <p className="muted">Không tìm thấy món nào khớp từ khóa này.</p>
+        <p className="muted">{t.search.noResults}</p>
       )}
     </>
   )

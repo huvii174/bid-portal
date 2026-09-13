@@ -2,8 +2,18 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { getDictionary, type Locale } from '../i18n'
 
-export function SourceToggle({ sourceId, enabled }: { sourceId: string; enabled: boolean }) {
+export function SourceToggle({
+  sourceId,
+  enabled,
+  locale,
+}: {
+  sourceId: string
+  enabled: boolean
+  locale: Locale
+}) {
+  const t = getDictionary(locale)
   const router = useRouter()
   const [pending, setPending] = useState(false)
 
@@ -20,7 +30,7 @@ export function SourceToggle({ sourceId, enabled }: { sourceId: string; enabled:
 
   return (
     <button onClick={toggle} disabled={pending}>
-      {enabled ? 'Tắt nguồn' : 'Bật lại'}
+      {enabled ? t.admin.turnOff : t.admin.turnOn}
     </button>
   )
 }

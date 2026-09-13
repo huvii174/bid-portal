@@ -129,7 +129,7 @@ export async function refreshWatchedListings(db: Db, maxItems = 25): Promise<num
     status: failed === rows.length ? 'error' : 'ok',
     itemsFound: updated,
     pagesFetched: fetched,
-    errorText: failed > 0 ? `${failed}/${rows.length} lot lam moi that bai` : undefined,
+    errorText: failed > 0 ? `${failed}/${rows.length} lots failed to refresh` : undefined,
   })
 
   return updated

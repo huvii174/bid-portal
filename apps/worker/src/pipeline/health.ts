@@ -84,17 +84,17 @@ async function alertAdmins(
   const admins = await db.select().from(users).where(eq(users.role, 'admin'))
   if (admins.length === 0) return
 
-  const subject = `[Bid Portal] nguon ${sourceId}: ${status}`
+  const subject = `[Bid Portal] source ${sourceId}: ${status}`
   const body = [
-    `Nguon: ${sourceId}`,
-    `Tu khoa: ${keyword}`,
-    `Trang thai: ${status}`,
-    errorText ? `Loi: ${errorText}` : '',
+    `Source: ${sourceId}`,
+    `Keyword: ${keyword}`,
+    `Status: ${status}`,
+    errorText ? `Error: ${errorText}` : '',
     '',
     status === 'zero_results'
-      ? 'Tu khoa nay truoc day CO ket qua nhung lan chay vua roi tra ve 0. Rat co the adapter da hong chu khong phai het hang.'
+      ? 'This keyword previously HAD results but this run returned 0. The adapter is most likely broken rather than the market being empty.'
       : '',
-    'Kiem tra tai /admin/sources.',
+    'Check /admin/sources.',
   ]
     .filter(Boolean)
     .join('\n')

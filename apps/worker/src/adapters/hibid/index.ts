@@ -46,11 +46,11 @@ export function createHibidAdapter(minRequestIntervalMs = 2000): Adapter {
             signal: AbortSignal.timeout(30_000),
           })
         } catch (err) {
-          throw new HibidFetchError(`khong goi duoc HiBid: ${(err as Error).message}`)
+          throw new HibidFetchError(`could not reach HiBid: ${(err as Error).message}`)
         }
 
         if (!res.ok) {
-          throw new HibidFetchError(`HiBid tra ve HTTP ${res.status}`, res.status)
+          throw new HibidFetchError(`HiBid returned HTTP ${res.status}`, res.status)
         }
 
         return parseHibidSearchHtml(await res.text(), page)

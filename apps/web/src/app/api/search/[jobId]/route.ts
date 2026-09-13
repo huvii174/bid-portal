@@ -19,7 +19,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ jobId: 
   const { jobId } = await params
   // Chuoi khong phai uuid se lam Postgres nem loi cast -> 500. Chan tu dau.
   if (!UUID_RE.test(jobId)) {
-    return NextResponse.json({ error: 'jobId khong hop le' }, { status: 400 })
+    return NextResponse.json({ error: 'invalid jobId' }, { status: 400 })
   }
 
   const db = getDb()
@@ -29,7 +29,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ jobId: 
     .from(searchJobs)
     .where(and(eq(searchJobs.id, jobId), eq(searchJobs.requestedByUserId, session.userId)))
     .limit(1)
-  if (!job) return NextResponse.json({ error: 'khong tim thay job' }, { status: 404 })
+  if (!job) return NextResponse.json({ error: 'job not found' }, { status: 404 })
 
   // Tien do tung nguon: nguon dang bat nao chua co AdapterRun cho job nay thi
   // van dang cho toi luot.

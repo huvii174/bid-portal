@@ -3,5 +3,5 @@ import { loadRootEnv } from '../env'
 import { purgeOldListings } from '../jobs/retention'
 
 loadRootEnv()
-console.log(`da xoa ${await purgeOldListings(getDb())} listing qua han luu tru`)
+console.log(`purged ${await purgeOldListings(getDb())} listing(s) past the retention window`)
 await getPool().end()

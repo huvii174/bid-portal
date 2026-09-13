@@ -9,12 +9,16 @@ import {
 import { requireSession } from '../../lib/auth'
 import { getDisplayTimezone } from '../../lib/settings'
 import { getFxContext } from '../../lib/fx'
+import { getUserLocale } from '../../lib/locale'
+import { getDictionary } from '../../i18n'
 import { ListingCard, type ResultRow } from '../../components/ListingCard'
 
 export default async function WatchlistPage() {
   const session = await requireSession()
   const timezone = await getDisplayTimezone()
   const fx = await getFxContext(session.userId)
+  const locale = await getUserLocale(session.userId)
+  const t = getDictionary(locale)
 
   const rows = await getDb()
     .select({
@@ -52,11 +56,12 @@ export default async function WatchlistPage() {
 
   return (
     <>
-      <h1 style={{ marginTop: 0 }}>Hàng quan tâm</h1>
+      <h1 style={{ marginTop: 0 }}>{t.watchlist.title}</h1>
 
       {items.length === 0 ? (
         <p className="muted">
-          Chưa lưu món nào. Vào <a href="/search">Tìm hàng</a> và bấm ☆ trên món bạn quan tâm.
+          {t.watchlist.empty} <a href="/search">{t.watchlist.emptyLinkText}</a>{' '}
+          {t.watchlist.emptyAfter}
         </p>
       ) : (
         <div
@@ -67,7 +72,7 @@ export default async function WatchlistPage() {
           }}
         >
           {items.map((row) => (
-            <ListingCard key={row.id} row={row} timezone={timezone} fx={fx} />
+            <ListingCard key={row.id} row={row} timezone={timezone} fx={fx} locale={locale} />
           ))}
         </div>
       )}

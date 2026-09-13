@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
   const body = (await req.json().catch(() => ({}))) as { keyword?: string }
   const keyword = normalizeKeyword(body.keyword ?? '')
-  if (!keyword) return NextResponse.json({ error: 'thieu tu khoa' }, { status: 400 })
+  if (!keyword) return NextResponse.json({ error: 'keyword is required' }, { status: 400 })
 
   const db = getDb()
   const cache = await getCacheState(db, keyword)

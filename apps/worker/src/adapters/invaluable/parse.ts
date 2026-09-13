@@ -81,16 +81,16 @@ function livePrice(hit: Json): { kind: PriceKind; amount?: number; rawText?: str
 export function parseInvaluableResponse(body: unknown, page = 1): SearchPage {
   const payload = body as Json | undefined
   if (!payload || typeof payload !== 'object') {
-    throw new InvaluableParseError('phan hoi Algolia khong phai object')
+    throw new InvaluableParseError('Algolia response is not an object')
   }
   if (payload.message && !payload.hits) {
-    throw new InvaluableParseError(`Algolia bao loi: ${String(payload.message).slice(0, 160)}`)
+    throw new InvaluableParseError(`Algolia returned an error: ${String(payload.message).slice(0, 160)}`)
   }
 
   const hits = Array.isArray(payload.hits) ? (payload.hits as Json[]) : null
   if (!hits) {
     if (page === 1) {
-      throw new InvaluableParseError('trang 1 khong co mang hits — phan hoi bat thuong')
+      throw new InvaluableParseError('page 1 has no hits array — anomalous response')
     }
     return { listings: [], isLastPage: true, httpRequests: 1 }
   }

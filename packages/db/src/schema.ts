@@ -67,6 +67,8 @@ export const users = pgTable('users', {
   role: text('role').notNull().default('member').$type<Role>(),
   /** Tien te hien thi de so sanh. Gia GOC luon duoc giu va hien song song. */
   displayCurrency: text('display_currency'),
+  /** Ngon ngu giao dien; null = dung mac dinh (tieng Anh). */
+  locale: text('locale'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 

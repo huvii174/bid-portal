@@ -49,20 +49,20 @@ export function readLiveAuctioneersState(html: string): Json {
   const marker = html.indexOf(STATE_MARKER)
   if (marker < 0) {
     throw new LiveAuctioneersParseError(
-      'khong tim thay window.__data — LiveAuctioneers co the da doi sang render phia client',
+      'no window.__data found — LiveAuctioneers may have moved to client-side rendering',
     )
   }
 
   const start = html.indexOf('{', marker)
   const raw = start < 0 ? null : extractBalancedObject(html, start)
-  if (!raw) throw new LiveAuctioneersParseError('khong cat duoc object window.__data')
+  if (!raw) throw new LiveAuctioneersParseError('could not extract the window.__data object')
 
   // Store duoc serialize theo kieu JS nen co `undefined` — khong hop le voi JSON.
   // Chi thay o vi tri GIA TRI, khong dung cho chuoi ben trong.
   try {
     return JSON.parse(raw.replace(/:\s*undefined\b/g, ':null')) as Json
   } catch (err) {
-    throw new LiveAuctioneersParseError(`window.__data khong parse duoc: ${(err as Error).message}`)
+    throw new LiveAuctioneersParseError(`window.__data failed to parse: ${(err as Error).message}`)
   }
 }
 
@@ -156,7 +156,7 @@ export function parseLiveAuctioneersSearchHtml(html: string, page = 1): SearchPa
   if (!itemIds) {
     if (page === 1) {
       throw new LiveAuctioneersParseError(
-        'trang 1 khong co search.itemIds — trang bat thuong, KHONG phai het hang',
+        'page 1 has no search.itemIds — anomalous page, NOT the end of results',
       )
     }
     return { listings: [], isLastPage: true, httpRequests: 1 }

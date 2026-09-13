@@ -3,5 +3,5 @@ import { loadRootEnv } from '../env'
 import { refreshFxRates } from '../jobs/fx'
 
 loadRootEnv()
-console.log(`da luu ${await refreshFxRates(getDb())} ty gia`)
+console.log(`saved ${await refreshFxRates(getDb())} FX rate(s)`)
 await getPool().end()

@@ -19,7 +19,7 @@ function secret(): Uint8Array {
   // thi mot lan `cp .env.example .env` roi quen sua la bat ky ai doc duoc
   // repo cung tu ky duoc token {role:'admin'}.
   if (value.length < 32 || value.startsWith('change-me')) {
-    throw new Error('AUTH_SECRET qua yeu hoac con la placeholder — sinh lai: openssl rand -base64 32')
+    throw new Error('AUTH_SECRET is too weak or still the placeholder — regenerate: openssl rand -base64 32')
   }
   return new TextEncoder().encode(value)
 }

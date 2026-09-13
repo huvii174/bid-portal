@@ -195,7 +195,7 @@ function readApolloState(html: string): Record<string, ApolloEntity> {
   const match = html.match(STATE_RE)
   if (!match?.[1]) {
     throw new HibidParseError(
-      'khong tim thay <script id="hibid-state"> — HiBid co the da bo TransferState',
+      'no <script id="hibid-state"> found — HiBid may have dropped its TransferState',
     )
   }
 
@@ -203,13 +203,13 @@ function readApolloState(html: string): Record<string, ApolloEntity> {
   try {
     state = JSON.parse(match[1].trim())
   } catch (err) {
-    throw new HibidParseError(`hibid-state khong phai JSON hop le: ${(err as Error).message}`)
+    throw new HibidParseError(`hibid-state is not valid JSON: ${(err as Error).message}`)
   }
 
   const apollo = (state as Record<string, unknown>)['apollo.state'] as
     | Record<string, ApolloEntity>
     | undefined
-  if (!apollo) throw new HibidParseError('thieu khoa "apollo.state"')
+  if (!apollo) throw new HibidParseError('missing "apollo.state" key')
   return apollo
 }
 
@@ -263,7 +263,7 @@ export function parseHibidSearchHtml(html: string, page = 1): SearchPage {
   const apollo = readApolloState(html)
 
   const rootQuery = apollo.ROOT_QUERY
-  if (!rootQuery) throw new HibidParseError('thieu ROOT_QUERY')
+  if (!rootQuery) throw new HibidParseError('missing ROOT_QUERY')
 
   // Trang vuot qua ket qua cuoi cung duoc HiBid render KHONG kem lotSearch.
   // Tren trang 2+ day la "het ket qua" binh thuong; nhung tren TRANG 1 thi
@@ -280,7 +280,7 @@ export function parseHibidSearchHtml(html: string, page = 1): SearchPage {
   if (!paged) {
     if (page === 1) {
       throw new HibidParseError(
-        'trang 1 khong co lotSearch — HiBid tra ve trang bat thuong, KHONG phai het hang',
+        'page 1 has no lotSearch — HiBid returned an anomalous page, NOT the end of results',
       )
     }
     return { listings: [], isLastPage: true, httpRequests: 1 }

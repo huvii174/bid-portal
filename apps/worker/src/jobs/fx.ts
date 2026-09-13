@@ -14,18 +14,18 @@ export async function refreshFxRates(db: Db): Promise<number> {
   try {
     res = await fetch(FX_URL, { signal: AbortSignal.timeout(20_000) })
   } catch (err) {
-    console.warn(`[fx] khong goi duoc nguon ty gia: ${(err as Error).message}`)
+    console.warn(`[fx] could not reach the rate source: ${(err as Error).message}`)
     return 0
   }
 
   if (!res.ok) {
-    console.warn(`[fx] nguon ty gia tra ve HTTP ${res.status}`)
+    console.warn(`[fx] rate source returned HTTP ${res.status}`)
     return 0
   }
 
   const body = (await res.json()) as { result?: string; rates?: Record<string, number> }
   if (body.result !== 'success' || !body.rates) {
-    console.warn('[fx] phan hoi ty gia khong hop le')
+    console.warn('[fx] rate response was not valid')
     return 0
   }
 

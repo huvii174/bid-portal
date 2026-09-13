@@ -56,7 +56,7 @@ export function createInvaluableAdapter(minRequestIntervalMs = 10_000): Adapter 
             signal: AbortSignal.timeout(30_000),
           })
         } catch (err) {
-          throw new InvaluableFetchError(`khong goi duoc Algolia: ${(err as Error).message}`)
+          throw new InvaluableFetchError(`could not reach Algolia: ${(err as Error).message}`)
         }
 
         if (!res.ok) {
@@ -64,9 +64,9 @@ export function createInvaluableAdapter(minRequestIntervalMs = 10_000): Adapter 
           // truc biet phai tat nguon chu khong phai di sua parser.
           const hint =
             res.status === 401 || res.status === 403
-              ? ' (khoa Algolia cua Invaluable co the da bi doi — tat nguon nay)'
+              ? ' (Invaluable may have rotated its Algolia keys — disable this source)'
               : ''
-          throw new InvaluableFetchError(`Algolia tra ve HTTP ${res.status}${hint}`, res.status)
+          throw new InvaluableFetchError(`Algolia returned HTTP ${res.status}${hint}`, res.status)
         }
 
         return parseInvaluableResponse(await res.json(), page)

@@ -10,7 +10,7 @@ export async function PATCH(req: Request) {
 
   const body = (await req.json().catch(() => ({}))) as { sourceId?: string; enabled?: boolean }
   if (!body.sourceId || typeof body.enabled !== 'boolean') {
-    return NextResponse.json({ error: 'thieu sourceId hoac enabled' }, { status: 400 })
+    return NextResponse.json({ error: 'sourceId and enabled are required' }, { status: 400 })
   }
 
   await getDb()

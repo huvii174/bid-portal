@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createPacer } from './rate-limit'
 
 describe('createPacer', () => {
-  it('khong cho 2 request lien tiep sat nhau hon nguong', async () => {
+  it('keeps two consecutive requests at least the interval apart', async () => {
     const pace = createPacer(120, 0)
     const t0 = Date.now()
     await pace()
@@ -10,14 +10,14 @@ describe('createPacer', () => {
     expect(Date.now() - t0).toBeGreaterThanOrEqual(115)
   })
 
-  it('request dau tien khong bi cho', async () => {
+  it('the first request is not delayed', async () => {
     const pace = createPacer(5000, 0)
     const t0 = Date.now()
     await pace()
     expect(Date.now() - t0).toBeLessThan(50)
   })
 
-  it('them nhieu ngau nhien de khong tao nhip deu tam tap', async () => {
+  it('adds jitter so the rhythm is not machine-regular', async () => {
     const pace = createPacer(60, 1)
     const t0 = Date.now()
     await pace()

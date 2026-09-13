@@ -10,11 +10,11 @@ const fixture = JSON.parse(readFileSync(join(here, 'fixtures/search-tiffany-lamp
 describe('parseInvaluableResponse — contract', () => {
   const page = parseInvaluableResponse(fixture)
 
-  it('doc duoc ket qua tu phan hoi Algolia', () => {
+  it('reads results out of the Algolia response', () => {
     expect(page.listings.length).toBeGreaterThan(0)
   })
 
-  it('moi listing co du field bat buoc va dung kieu', () => {
+  it('every listing has the required fields with the right types', () => {
     for (const l of page.listings) {
       expect(l.sourceListingId.length).toBeGreaterThan(0)
       expect(l.title.length).toBeGreaterThan(0)
@@ -27,7 +27,7 @@ describe('parseInvaluableResponse — contract', () => {
     }
   })
 
-  it('KHONG luu du lieu ca nhan cua nguoi dung Invaluable', () => {
+  it('does NOT store personal data belonging to Invaluable users', () => {
     // `watched`/`watchedRefs` la danh sach ID nguoi dung dang theo doi lot.
     // Chung ta can du lieu mon hang, khong can biet ai dang xem gi.
     for (const l of page.listings) {
@@ -42,40 +42,40 @@ describe('parseInvaluableResponse — contract', () => {
     }
   })
 
-  it('lay duoc tien te theo tung lot', () => {
+  it('picks up the per-lot currency', () => {
     const withCurrency = page.listings.filter((l) => l.currency)
     expect(withCurrency.length).toBeGreaterThan(0)
     for (const l of withCurrency) expect(l.currency).toMatch(/^[A-Z]{3}$/)
   })
 
-  it('lay duoc danh muc cua nguon', () => {
+  it('picks up the category from the source', () => {
     const withCategory = page.listings.find((l) => l.sourceCategory)
     expect(withCategory?.sourceCategory).toContain('/')
   })
 
-  it('tach estimate khoi gia song', () => {
+  it('keeps the estimate separate from the live price', () => {
     const withBoth = page.listings.find(
       (l) => l.estimateLow !== undefined && l.priceKind !== 'estimate',
     )
     if (withBoth) expect(withBoth.priceAmount).not.toBe(withBoth.estimateLow)
   })
 
-  it('gan duoc nha dau gia', () => {
+  it('links the auction house', () => {
     const withHouse = page.listings.find((l) => l.auction?.house)
     expect(withHouse?.auction?.house?.name.length).toBeGreaterThan(0)
   })
 
-  it('bao loi khi Algolia tu choi', () => {
+  it('reports when Algolia rejects the request', () => {
     expect(() => parseInvaluableResponse({ message: 'Invalid API key', status: 403 })).toThrow(
       InvaluableParseError,
     )
   })
 
-  it('TRANG 1 thieu hits phai nem loi, khong duoc coi la het hang', () => {
+  it('PAGE 1 without hits must throw, never be read as the end of results', () => {
     expect(() => parseInvaluableResponse({}, 1)).toThrow(InvaluableParseError)
   })
 
-  it('TRANG 2 thieu hits la het trang', () => {
+  it('PAGE 2 without hits is the end of results', () => {
     const result = parseInvaluableResponse({}, 2)
     expect(result.listings).toEqual([])
     expect(result.isLastPage).toBe(true)

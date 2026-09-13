@@ -1,15 +1,19 @@
+import { DEFAULT_LOCALE, getDictionary } from '../../i18n'
+
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; next?: string }>
 }) {
   const { error, next } = await searchParams
+  // Chua dang nhap nen chua biet tuy chon cua ai — dung mac dinh.
+  const t = getDictionary(DEFAULT_LOCALE)
 
   return (
     <div style={{ maxWidth: 380, margin: '8vh auto' }}>
-      <h1 style={{ marginBottom: 4 }}>Bid Portal</h1>
+      <h1 style={{ marginBottom: 4 }}>{t.app.name}</h1>
       <p className="muted" style={{ marginTop: 0, marginBottom: 22 }}>
-        Tổng hợp đồ cổ đấu giá từ nhiều sàn về một nơi.
+        {t.app.tagline}
       </p>
 
       <form className="card" action="/api/auth/login" method="post">
@@ -17,26 +21,26 @@ export default async function LoginPage({
 
         <label>
           <div className="muted" style={{ marginBottom: 4 }}>
-            Email
+            {t.login.email}
           </div>
           <input type="email" name="email" required autoFocus autoComplete="username" />
         </label>
 
         <label style={{ display: 'block', marginTop: 14 }}>
           <div className="muted" style={{ marginBottom: 4 }}>
-            Mật khẩu
+            {t.login.password}
           </div>
           <input type="password" name="password" required autoComplete="current-password" />
         </label>
 
         {error && (
           <p style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 0 }}>
-            Email hoặc mật khẩu không đúng.
+            {t.login.failed}
           </p>
         )}
 
         <button className="primary" type="submit" style={{ width: '100%', marginTop: 18 }}>
-          Đăng nhập
+          {t.login.submit}
         </button>
       </form>
     </div>

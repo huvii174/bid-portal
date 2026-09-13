@@ -11,6 +11,7 @@ Portal nội bộ gom hàng đồ cổ đang đấu giá từ nhiều sàn về 
 - Lưu món quan tâm vào watchlist; bấm là mở thẳng trang gốc trên sàn tương ứng để đấu giá.
 - Chọn tiền tệ quy đổi để so sánh; **giá gốc luôn giữ nguyên** vì đó là số tiền thực phải trả.
 - Đăng nhập, 2 quyền: `admin` (quản lý nguồn, cài đặt) và `member`.
+- Giao diện song ngữ **Anh / Việt**, mặc định tiếng Anh; mỗi người tự chọn ngôn ngữ và tiền tệ riêng.
 - Trang quản trị: kill-switch từng nguồn, lịch sử các lần crawl, cảnh báo khi worker ngừng chạy.
 
 ## Chạy thử
@@ -35,6 +36,15 @@ apps/worker    crawler, hàng đợi job, bảo trì định kỳ
 packages/db    schema Drizzle + truy vấn dùng chung
 docs/          SPIKE-hibid.md (cách HiBid hoạt động), OPERATIONS.md (vận hành, ba nguồn)
 ```
+
+## Ngôn ngữ
+
+Mặc định là **tiếng Anh** để người ngoài mở lên đọc được ngay; mỗi người tự đổi sang Tiếng Việt trên thanh điều hướng.
+
+- Chuỗi giao diện nằm trong `apps/web/src/i18n/{en,vi}.ts`. `en.ts` là nguồn chuẩn — kiểu của `vi.ts` lấy từ nó, nên **thiếu một khoá là trình biên dịch báo lỗi ngay**, kèm test so khớp bộ khoá ở mức dữ liệu.
+- Từ điển chứa hàm (số nhiều, nội suy) mà hàm **không truyền được qua props** từ server sang client, nên chỉ chuỗi `locale` đi qua ranh giới đó; mỗi phía tự gọi `getDictionary(locale)`.
+- `formatLocale` đi kèm từng ngôn ngữ, dùng cho `toLocaleString` — số và ngày đổi định dạng theo ngôn ngữ.
+- **Thông báo lỗi, log và tên test viết bằng tiếng Anh**, không phải tiếng Việt không dấu: chúng nằm trong log và bảng quản trị, mà "khong tim thay" thì mất nghĩa.
 
 ## Nguyên tắc thiết kế đáng nhớ
 

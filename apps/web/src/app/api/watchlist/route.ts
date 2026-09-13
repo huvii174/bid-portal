@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   const listingId = await readListingId(req)
-  if (!listingId) return NextResponse.json({ error: 'thieu listingId' }, { status: 400 })
+  if (!listingId) return NextResponse.json({ error: 'listingId is required' }, { status: 400 })
 
   await getDb()
     .insert(watchlistItems)
@@ -32,7 +32,7 @@ export async function DELETE(req: Request) {
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   const listingId = await readListingId(req)
-  if (!listingId) return NextResponse.json({ error: 'thieu listingId' }, { status: 400 })
+  if (!listingId) return NextResponse.json({ error: 'listingId is required' }, { status: 400 })
 
   await getDb()
     .delete(watchlistItems)

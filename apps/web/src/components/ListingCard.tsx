@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { convertCurrency } from '@bid/db/currency'
+import { getDictionary, type Locale } from '../i18n'
 
 export interface ResultRow {
   id: string
@@ -30,28 +31,12 @@ const SOURCE_NAME: Record<string, string> = {
   invaluable: 'Invaluable',
 }
 
-/** Nhãn phải nói rõ đây là loại giá gì — không bao giờ để người xem tự đoán. */
-const PRICE_LABEL: Record<string, string> = {
-  current_bid: 'Giá hiện tại',
-  starting_bid: 'Giá khởi điểm',
-  buy_now: 'Mua ngay',
-  sold: 'Đã bán',
-  estimate: 'Ước tính',
-  unknown: 'Chưa có giá',
-}
 
-const STATUS_LABEL: Record<string, string> = {
-  ended: 'Đã kết thúc',
-  sold: 'Đã bán',
-  withdrawn: 'Đã gỡ',
-  stale: 'Có thể đã gỡ',
-}
-
-function money(amount: string | null, currency: string | null): string | null {
+function money(amount: string | null, currency: string | null, fmt: string): string | null {
   if (amount === null) return null
   const n = Number(amount)
   if (!Number.isFinite(n)) return null
-  const formatted = n.toLocaleString('vi-VN', { maximumFractionDigits: 2 })
+  const formatted = n.toLocaleString(fmt, { maximumFractionDigits: 2 })
   return currency ? `${formatted} ${currency}` : formatted
 }
 
@@ -61,22 +46,27 @@ function money(amount: string | null, currency: string | null): string | null {
  * dưới sẽ biến "ước tính 2.000–4.000" thành "2.000", đúng kiểu hiển thị sai giá
  * mà cả mô hình dữ liệu này sinh ra để ngăn.
  */
-function range(low: string | null, high: string | null, currency: string | null): string | null {
+function range(
+  low: string | null,
+  high: string | null,
+  currency: string | null,
+  fmt: string,
+): string | null {
   if (low === null) return null
   const lowNum = Number(low)
   if (!Number.isFinite(lowNum)) return null
 
-  const fmt = (n: number) => n.toLocaleString('vi-VN', { maximumFractionDigits: 2 })
+  const show = (n: number) => n.toLocaleString(fmt, { maximumFractionDigits: 2 })
   const suffix = currency ? ` ${currency}` : ''
   const highNum = high === null ? null : Number(high)
 
   return highNum !== null && Number.isFinite(highNum) && highNum !== lowNum
-    ? `${fmt(lowNum)}–${fmt(highNum)}${suffix}`
-    : `${fmt(lowNum)}${suffix}`
+    ? `${show(lowNum)}–${show(highNum)}${suffix}`
+    : `${show(lowNum)}${suffix}`
 }
 
-function estimateText(row: ResultRow): string | null {
-  return range(row.estimateLow, row.estimateHigh, row.currency)
+function estimateText(row: ResultRow, fmt: string): string | null {
+  return range(row.estimateLow, row.estimateHigh, row.currency, fmt)
 }
 
 /**
@@ -84,24 +74,26 @@ function estimateText(row: ResultRow): string | null {
  * khac nhau neu vuot qua moc phut — dung kieu lech hydration ma React canh bao.
  * Vi vay chi tinh SAU khi mount; may chu khong render gi cho o nay.
  */
-function useCountdown(endsAtUtc: string | null): string | null {
+function useCountdown(endsAtUtc: string | null, locale: Locale): string | null {
   const [text, setText] = useState<string | null>(null)
-  useEffect(() => setText(countdown(endsAtUtc)), [endsAtUtc])
+  useEffect(() => setText(countdown(endsAtUtc, locale)), [endsAtUtc, locale])
   return text
 }
 
-function countdown(endsAtUtc: string | null): string | null {
+function countdown(endsAtUtc: string | null, locale: Locale): string | null {
   if (!endsAtUtc) return null
   const ms = new Date(endsAtUtc).getTime() - Date.now()
   if (!Number.isFinite(ms)) return null
-  if (ms <= 0) return 'đã đóng'
+
+  const t = getDictionary(locale)
+  if (ms <= 0) return t.card.closed
 
   const mins = Math.floor(ms / 60000)
   const days = Math.floor(mins / 1440)
-  if (days >= 1) return `còn ${days} ngày`
+  if (days >= 1) return t.card.daysLeft(days)
   const hours = Math.floor(mins / 60)
-  if (hours >= 1) return `còn ${hours} giờ`
-  return `còn ${mins} phút`
+  if (hours >= 1) return t.card.hoursLeft(hours)
+  return t.card.minutesLeft(mins)
 }
 
 export interface FxProps {
@@ -113,11 +105,15 @@ export function ListingCard({
   row,
   timezone,
   fx,
+  locale,
 }: {
   row: ResultRow
   timezone: string
   fx?: FxProps
+  locale: Locale
 }) {
+  const t = getDictionary(locale)
+  const fmt = t.formatLocale
   const [watchlisted, setWatchlisted] = useState(row.watchlisted)
   const [pending, setPending] = useState(false)
 
@@ -125,13 +121,13 @@ export function ListingCard({
   // hien ca hai dau; cac loai gia khac la mot con so don.
   const price =
     row.priceKind === 'estimate'
-      ? range(row.priceAmount, row.priceAmountHigh, row.currency)
-      : money(row.priceAmount, row.currency)
-  const estimate = estimateText(row)
+      ? range(row.priceAmount, row.priceAmountHigh, row.currency, fmt)
+      : money(row.priceAmount, row.currency, fmt)
+  const estimate = estimateText(row, fmt)
   // Chi hien estimate rieng khi no KHONG phai gia chinh dang hien.
   const showEstimate = estimate && row.priceKind !== 'estimate'
-  const remaining = useCountdown(row.endsAtUtc)
-  const endedBadge = STATUS_LABEL[row.status]
+  const remaining = useCountdown(row.endsAtUtc, locale)
+  const endedBadge = t.listingStatus[row.status as keyof typeof t.listingStatus]
 
   // Quy doi chi de SO SANH. Gia goc o tren van la so tien thuc phai tra, nen
   // no giu vai tro chinh; thieu ty gia thi khong hien gi ca, khong bao gio doan.
@@ -178,7 +174,7 @@ export function ListingCard({
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
         <span className="badge source">{SOURCE_NAME[row.sourceId] ?? row.sourceId}</span>
         {endedBadge && <span className="badge warn">{endedBadge}</span>}
-        {row.lotNo && <span className="badge">Lô {row.lotNo}</span>}
+        {row.lotNo && <span className="badge">{t.card.lot(row.lotNo)}</span>}
       </div>
 
       <h3 style={{ margin: 0, fontSize: 15, lineHeight: 1.35 }}>{row.title}</h3>
@@ -186,24 +182,23 @@ export function ListingCard({
       <div>
         <div style={{ fontWeight: 600 }}>
           <span className="muted" style={{ fontWeight: 400 }}>
-            {PRICE_LABEL[row.priceKind] ?? row.priceKind}:{' '}
+            {t.priceKind[row.priceKind as keyof typeof t.priceKind] ?? row.priceKind}:{' '}
           </span>
-          {price ?? '—'}
+          {price ?? t.card.noPrice}
         </div>
         {converted !== null && row.currency !== fx?.displayCurrency && (
-          <div className="muted" title="Quy đổi tham khảo theo tỷ giá cập nhật hằng ngày">
-            ≈ {converted.toLocaleString('vi-VN', { maximumFractionDigits: 0 })}{' '}
-            {fx?.displayCurrency}
+          <div className="muted" title={t.card.convertedHint}>
+            ≈ {converted.toLocaleString(fmt, { maximumFractionDigits: 0 })} {fx?.displayCurrency}
           </div>
         )}
         {showEstimate && (
           <div className="muted" title={row.rawEstimateText ?? undefined}>
-            Ước tính: {estimate}
+            {t.card.estimate(estimate!)}
           </div>
         )}
         {!row.currency && price && (
-          <div className="muted" title="Nguồn không kèm thông tin tiền tệ cho món này">
-            (không rõ tiền tệ)
+          <div className="muted" title={t.card.unknownCurrencyHint}>
+            {t.card.unknownCurrency}
           </div>
         )}
       </div>
@@ -214,12 +209,15 @@ export function ListingCard({
           <div
             title={
               row.endsAtUtc
-                ? `${new Date(row.endsAtUtc).toLocaleString('vi-VN', { timeZone: timezone })} (giờ ${timezone})`
+                ? t.card.endsAtHint(
+                    new Date(row.endsAtUtc).toLocaleString(fmt, { timeZone: timezone }),
+                    timezone,
+                  )
                 : undefined
             }
           >
             {remaining}
-            {row.endTimeIsApproximate && ' (phiên live, giờ đóng chỉ là ước lượng)'}
+            {row.endTimeIsApproximate && ` ${t.card.liveApproximate}`}
           </div>
         )}
       </div>
@@ -232,9 +230,15 @@ export function ListingCard({
           rel="noopener noreferrer"
           style={{ flex: 1, textAlign: 'center' }}
         >
-          Xem trên {SOURCE_NAME[row.sourceId] ?? row.sourceId}
+          {t.card.viewOn(SOURCE_NAME[row.sourceId] ?? row.sourceId)}
         </a>
-        <button onClick={toggleWatch} disabled={pending} aria-pressed={watchlisted}>
+        <button
+          onClick={toggleWatch}
+          disabled={pending}
+          aria-pressed={watchlisted}
+          aria-label={watchlisted ? t.card.watchRemove : t.card.watchAdd}
+          title={watchlisted ? t.card.watchRemove : t.card.watchAdd}
+        >
           {watchlisted ? '★' : '☆'}
         </button>
       </div>

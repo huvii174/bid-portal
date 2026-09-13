@@ -1,34 +1,39 @@
 import { requireAdmin } from '../../../lib/auth'
 import { getSetting } from '../../../lib/settings'
+import { getUserLocale } from '../../../lib/locale'
+import { getDictionary, type Dictionary } from '../../../i18n'
 
-const FIELDS = [
-  {
-    key: 'display_timezone',
-    label: 'Múi giờ hiển thị',
-    hint: 'Dùng cho đếm ngược và email digest. Ví dụ: Asia/Ho_Chi_Minh',
-    fallback: 'Asia/Ho_Chi_Minh',
-  },
-  {
-    key: 'pages_per_search',
-    label: 'Số trang lấy mỗi nguồn cho một từ khóa',
-    hint: 'HiBid trả 100 món mỗi trang, nên 2 trang là tối đa 200 món.',
-    fallback: '2',
-  },
-  {
-    key: 'keyword_cache_ttl_hours',
-    label: 'Thời hạn cache kết quả (giờ)',
-    hint: 'Trong thời hạn này, tìm lại cùng từ khóa sẽ trả ngay từ kho, không crawl.',
-    fallback: '6',
-  },
-] as const
+const fields = (t: Dictionary) =>
+  [
+    {
+      key: 'display_timezone',
+      label: t.admin.timezoneLabel,
+      hint: t.admin.timezoneHint,
+      fallback: 'Asia/Ho_Chi_Minh',
+    },
+    {
+      key: 'pages_per_search',
+      label: t.admin.pagesLabel,
+      hint: t.admin.pagesHint,
+      fallback: '2',
+    },
+    {
+      key: 'keyword_cache_ttl_hours',
+      label: t.admin.cacheLabel,
+      hint: t.admin.cacheHint,
+      fallback: '6',
+    },
+  ] as const
 
 export default async function AdminSettingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ saved?: string; rejected?: string }>
 }) {
-  await requireAdmin()
+  const session = await requireAdmin()
   const { saved, rejected } = await searchParams
+  const t = getDictionary(await getUserLocale(session.userId))
+  const FIELDS = fields(t)
 
   const current = await Promise.all(
     FIELDS.map(async (f) => [f.key, await getSetting(f.key, f.fallback)] as const),
@@ -37,16 +42,16 @@ export default async function AdminSettingsPage({
 
   return (
     <>
-      <h1 style={{ marginTop: 0 }}>Cài đặt</h1>
+      <h1 style={{ marginTop: 0 }}>{t.admin.settingsTitle}</h1>
 
       {saved && (
         <p className="badge" style={{ display: 'inline-block' }}>
-          Đã lưu.
+          {t.admin.saved}
         </p>
       )}
       {rejected && (
         <p className="badge warn" style={{ display: 'inline-block' }}>
-          Giá trị không hợp lệ, bỏ qua: {rejected}
+          {t.admin.rejected(rejected)}
         </p>
       )}
 
@@ -62,7 +67,7 @@ export default async function AdminSettingsPage({
         ))}
 
         <button className="primary" type="submit">
-          Lưu
+          {t.admin.save}
         </button>
       </form>
     </>
